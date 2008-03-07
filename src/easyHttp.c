@@ -4,7 +4,7 @@
 #include "easyHttp.h"
 
 #include "XOPStructureAlignmentTwoByte.h"	// All structures passed to Igor are two-byte aligned.
-struct GetHTTPRuntimeParams {
+struct easyHttpRuntimeParams {
 	// Flag parameters.
 
 	// Parameters for /AUTH flag group.
@@ -33,12 +33,12 @@ struct GetHTTPRuntimeParams {
 	int calledFromFunction;					// 1 if called from a user function, 0 otherwise.
 	int calledFromMacro;					// 1 if called from a macro, 0 otherwise.
 };
-typedef struct GetHTTPRuntimeParams GetHTTPRuntimeParams;
-typedef struct GetHTTPRuntimeParams* GetHTTPRuntimeParamsPtr;
+typedef struct easyHttpRuntimeParams easyHttpRuntimeParams;
+typedef struct easyHttpRuntimeParams* easyHttpRuntimeParamsPtr;
 #include "XOPStructureAlignmentReset.h"		// Reset structure alignment to default.
  
 static int
-ExecuteGetHTTP(GetHTTPRuntimeParamsPtr p)
+ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 {
 	int err = 0;
 	CURL *curl = NULL;
@@ -137,7 +137,7 @@ ExecuteGetHTTP(GetHTTPRuntimeParamsPtr p)
 	
 	/*get it*/
 	if(res = curl_easy_perform(curl)){
-		XOPNotice("getHTTP error: ");
+		XOPNotice("easyHTTP error: ");
 		XOPNotice(curlerror);
 		XOPNotice("\r");
 		goto done;
@@ -149,11 +149,17 @@ ExecuteGetHTTP(GetHTTPRuntimeParamsPtr p)
 		myrealloc(chunk.memory,sizeof(chunk.memory)+sizeof(char));
 		chunk.size = sizeof(char)+chunk.size;
 		*(chunk.memory+chunk.size)= (char)"\0";
-		if(err = SetIgorStringVar("S_getHttp",chunk.memory,1))
+		if(err = SetOperationStrVar("S_getHttp",chunk.memory))
 			goto done;
 	}
 		
 done:
+	if((err | res)){
+		 SetOperationNumVar("V_flag",1);
+	} else {
+		err = SetOperationNumVar("V_flag",0);
+	}
+
 	if(curl){
 		//always cleanup
 		curl_easy_cleanup(curl);
@@ -171,17 +177,17 @@ done:
 }
 
 static int
-RegisterGetHTTP(void)
+RegisterEasyHTTP(void)
 {
 	char* cmdTemplate;
 	char* runtimeNumVarList;
 	char* runtimeStrVarList;
 
-	// NOTE: If you change this template, you must change the GetHTTPRuntimeParams structure as well.
-	cmdTemplate = "GetHTTP/auth=string/pass=string/file=string string";
-	runtimeNumVarList = "";
-	runtimeStrVarList = "";
-	return RegisterOperation(cmdTemplate, runtimeNumVarList, runtimeStrVarList, sizeof(GetHTTPRuntimeParams), (void*)ExecuteGetHTTP, 0);
+	// NOTE: If you change this template, you must change the easyHttpRuntimeParams structure as well.
+	cmdTemplate = "easyHTTP/auth=string/pass=string/file=string string";
+	runtimeNumVarList = "V_Flag";
+	runtimeStrVarList = "S_getHttp";
+	return RegisterOperation(cmdTemplate, runtimeNumVarList, runtimeStrVarList, sizeof(easyHttpRuntimeParams), (void*)ExecuteEasyHTTP, 0);
 }
 
 static int
@@ -190,7 +196,7 @@ RegisterOperations(void)		// Register any operations with Igor.
 	int result;
 	
 	// Register XOP1 operation.
-	if (result = RegisterGetHTTP())
+	if (result = RegisterEasyHTTP())
 		return result;
 	
 	// There are no more operations added by this XOP.

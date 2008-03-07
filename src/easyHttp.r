@@ -30,6 +30,14 @@ resource 'XOPI' (1100) {
 	XOP_TOOLKIT_VERSION,					// XOP Toolkit version.
 };
 
+resource 'STR#' (1101) {					// Misc strings for XOP.
+	{
+		"-1",								// This item is no longer supported by the Carbon XOP Toolkit.
+		"No Menu Item",						// This item is no longer supported by the Carbon XOP Toolkit.
+		"easyHttp Help",					// Name of XOP's help file.
+	}
+};
+
 //resource 'XOPF' (1100) {
 //	{
 		/* str1 = iPeekGetPeekData(host, port, instrument) */	/* This uses the direct call method */
@@ -46,7 +54,7 @@ resource 'XOPI' (1100) {
 
 resource 'XOPC' (1100) {
 	{
-		"easyhttp",								// Name of operation.
+		"easyHttp",								// Name of operation.
 		XOPOp+UtilOP+compilableOp,			// Operation's category.
 	}
 };
