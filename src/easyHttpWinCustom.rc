@@ -1,0 +1,42 @@
+/*
+easyHttp.c -- An XOP for curvefitting via Differential Evolution.
+@copyright: Andrew Nelson and the Australian Nuclear Science and Technology Organisation 2007.
+*/
+
+
+#include "XOPResources.h"			// Defines XOP-specific symbols.
+
+1100 STR#							// Custom error messages.
+BEGIN
+    //[1]
+	"easyHttp requires Igor Pro 5.03 or later.\0",
+
+	// You can add error messages here.
+
+	0,								// NOTE: 0 required to terminate the resource.
+END
+
+1101 STR#							// Misc strings that Igor looks for.
+BEGIN
+	"-1\0",							// -1 means we don't want to add a menu item via STR# 1101. We add it via the XMI1 reource.
+	"---\0",						// IGOR ignores item 2 because item 1 is -1.
+	"easyHttp Help\0",			// Name of XOP's help file.
+	"\0"							// NOTE: NULL required to terminate the resource.
+END
+
+1100 XOPI							// XOPI - Describes general XOP properties to IGOR.
+BEGIN
+	XOP_VERSION,					// Version number of host XOP system.
+	DEV_SYS_CODE,					// Code for development system used to make XOP.
+	0,								// Obsolete - set to zero.
+	0,								// Obsolete - set to zero.
+	XOP_TOOLKIT_VERSION				// XOP Toolkit version.
+END
+
+1100 XOPC							// Describes operations that the XOP adds to IGOR.
+BEGIN
+	"easyHttp\0",
+	utilOp | XOPOp | compilableOp,
+
+	"\0"							// NOTE: NULL required to terminate the resource.
+END
