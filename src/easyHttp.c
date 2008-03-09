@@ -142,13 +142,13 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 		XOPNotice("\r");
 		goto done;
 	}
-	
+
 	//if not in a file put into a string handle
 	if (!p->FILEFlagEncountered){
 		//data may not be null terminated
-		myrealloc(chunk.memory,sizeof(chunk.memory)+sizeof(char));
-		chunk.size = sizeof(char)+chunk.size;
-		*(chunk.memory+chunk.size)= (char)"\0";
+//		myrealloc(chunk.memory,chunk.size+sizeof(char));
+//		chunk.size += 1;
+//		*(chunk.memory + chunk.size-1) = (char)"\0";
 		if(err = SetOperationStrVar("S_getHttp",chunk.memory))
 			goto done;
 	}
@@ -160,15 +160,15 @@ done:
 		err = SetOperationNumVar("V_flag",0);
 	}
 
+	if(chunk.memory)
+		free(chunk.memory);
+
 	if(curl){
 		//always cleanup
 		curl_easy_cleanup(curl);
 	}
 	if (outputFile != NULL) 
 		err = XOPCloseFile(outputFile);
-			
-	if(chunk.memory)
-		free(chunk.memory);
 	
 	/* cleanup libcurl*/
 	curl_global_cleanup();
