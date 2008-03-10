@@ -1,6 +1,7 @@
 /*
-easyHttp.c -- An XOP for curvefitting via Differential Evolution.
-@copyright: Andrew Nelson and the Australian Nuclear Science and Technology Organisation 2007.
+easyHttp.c -- An XOP for retrieving files from URLS
+i.e. from webpages, ftp, etc.
+@copyright: Andrew Nelson  2008.
 */
 
 
