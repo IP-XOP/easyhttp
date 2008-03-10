@@ -3,7 +3,7 @@
 resource 'vers' (1) {						/* XOP version info */
 	0x01, 0x00, final, 0x00, 0,				/* version bytes and country integer */
 	"1.00",
-	"1.00, © 1993 WaveMetrics, Inc., all rights reserved."
+	"1.00, ï¿½ 2008, Andrew Nelson."
 };
 
 resource 'vers' (2) {						/* Igor version info */
