@@ -22,6 +22,11 @@ struct easyHttpRuntimeParams {
 	Handle FILEFlagStrH;
 	int FILEFlagParamsSet[1];
 
+	// Parameters for /FILE flag group.
+	int PROXYFlagEncountered;
+	Handle PROXYFlagStrH;
+	int PROXYFlagParamsSet[1];
+	
 	// Main parameters.
 
 	// Parameters for url keyword group.
@@ -67,13 +72,24 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	curl_easy_setopt(curl,CURLOPT_ERRORBUFFER,curlerror);
 	
 	// Flag parameters.
-
+	
 	if (p->AUTHFlagEncountered) {
 		// Parameter: p->AUTHFlagStrH (test for NULL handle before using)
 		if (p->AUTHFlagStrH == NULL) {
 			err = OH_EXPECTED_STRING;
 			goto done;
 		}
+	}
+	
+	/* for proxies*/
+	if(p->PROXYFlagEncountered){
+		if (p->PROXYFlagStrH == NULL) {
+			err = OH_EXPECTED_STRING;
+			goto done;
+		}
+		if(err = GetCStringFromHandle(p->PROXYFlagStrH,url,MAX_URL_LENGTH))
+			goto done;
+		curl_easy_setopt(curl,CURLOPT_PROXY,url);
 	}
 	
 	/* For Authentication */
@@ -184,7 +200,7 @@ RegisterEasyHTTP(void)
 	char* runtimeStrVarList;
 
 	// NOTE: If you change this template, you must change the easyHttpRuntimeParams structure as well.
-	cmdTemplate = "easyHTTP/auth=string/pass=string/file=string string";
+	cmdTemplate = "easyHTTP/auth=string/pass=string/file=string/proxy=string string";
 	runtimeNumVarList = "V_Flag";
 	runtimeStrVarList = "S_getHttp";
 	return RegisterOperation(cmdTemplate, runtimeNumVarList, runtimeStrVarList, sizeof(easyHttpRuntimeParams), (void*)ExecuteEasyHTTP, 0);
