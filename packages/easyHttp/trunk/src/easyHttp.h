@@ -2,7 +2,9 @@
 #include "XOPStandardHeaders.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <string>
+#include <vector>
+#include <algorithm>
  
 #include <curl/curl.h>
 #include <curl/types.h>
@@ -12,9 +14,28 @@
 #define MAX_PASSLEN 200
 
 #define REQUIRES_IGOR_500 1 + FIRST_XOP_ERR
+#define ERR_KEY_VAL 2 + FIRST_XOP_ERR
 
 /* Prototypes */
+#ifdef _MACINTOSH_
+HOST_IMPORT int main(IORecHandle ioRecHandle);
+#endif
+#ifdef _WINDOWS_
 HOST_IMPORT void main(IORecHandle ioRecHandle);
+#endif
+
+
+using namespace std;
+
+struct keyValuePairs {
+	vector<string> keys;
+	vector<string> values;
+};
+typedef struct keyValuePairs keyValuePairs;
+int keyValues(const char* STR, keyValuePairs *kvp, const char *valDelim,const char* pairDelim);
+
+
+
 static size_t WriteMemoryCallback(void *ptr, size_t size, size_t nmemb, void *data);
 static void *myrealloc(void *ptr, size_t size);
 static size_t write_filedata(void *ptr, size_t size, size_t nmemb, void *stream);

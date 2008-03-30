@@ -22,17 +22,27 @@ struct easyHttpRuntimeParams {
 	Handle FILEFlagStrH;
 	int FILEFlagParamsSet[1];
 
-	// Parameters for /FILE flag group.
+	// Parameters for /PROXY flag group.
 	int PROXYFlagEncountered;
 	Handle PROXYFlagStrH;
 	int PROXYFlagParamsSet[1];
-	
+
+	// Parameters for /POST flag group.
+	int POSTFlagEncountered;
+	Handle POSTFlagStrH;
+	int POSTFlagParamsSet[1];
+
+	// Parameters for /UPLOAD flag group.
+	int FTPFlagEncountered;
+	Handle FTPFlagStrH;
+	int FTPFlagParamsSet[1];
+
 	// Main parameters.
 
-	// Parameters for url keyword group.
-	int urlEncountered;
-	Handle urlStrH;
-	int urlParamsSet[1];
+	// Parameters for URL keyword group.
+	int main0Encountered;
+	Handle main0StrH;
+	int main0ParamsSet[1];
 
 	// These are postamble fields that Igor sets.
 	int calledFromFunction;					// 1 if called from a user function, 0 otherwise.
@@ -52,6 +62,16 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	char pathName[MAX_PATH_LEN+1];
 	char pathNameToWrite[MAX_PATH_LEN+1];
 	char userpassword[MAX_PASSLEN+1];
+	char postfields[4097];
+
+/*	keyValuePairs kvp;
+	int ii;		
+	struct curl_httppost *formpost=NULL;
+	struct curl_httppost *lastptr=NULL;
+*/
+    struct curl_slist *headerlist=NULL;
+	
+	
 	XOP_FILE_REF outputFile = NULL;
 	char curlerror[CURL_ERROR_SIZE+1];
 	
@@ -106,21 +126,65 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 		curl_easy_setopt(curl,CURLOPT_HTTPAUTH,CURLAUTH_ANY);
 	}
 	
-	/* The URL of interest */
-	if (p->urlEncountered) {
-		// Parameter: p->urlStrH (test for NULL handle before using)
-		if (p->urlStrH == NULL) {
+	if(p->POSTFlagEncountered){
+		if (p->POSTFlagStrH == NULL) {
 			err = OH_EXPECTED_STRING;
 			goto done;
 		}
-		if(err = GetCStringFromHandle(p->urlStrH,url,MAX_URL_LENGTH))
+		if(err = GetCStringFromHandle(p->POSTFlagStrH,postfields,4096))
+			goto done;
+		 
+		 curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postfields);
+		 curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, strlen(postfields));
+  
+/*		if(keyValues(postfields, &kvp,":",";")){
+			err = ERR_KEY_VAL;
+			goto done;
+		}
+		for(ii = 0 ; ii < kvp.keys.size() ; ii ++){
+			    curl_formadd(&formpost,
+                 &lastptr,
+                 CURLFORM_COPYNAME, kvp.keys.at(ii).c_str(),
+                 CURLFORM_COPYCONTENTS, kvp.values.at(ii).c_str(),
+                 CURLFORM_END);
+		}
+		curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);		 
+*/
+
+	}	
+		
+	if(p->FTPFlagEncountered){
+		if (p->FTPFlagStrH == NULL) {
+			err = OH_EXPECTED_STRING;
+			goto done;
+		}
+		if(err = GetCStringFromHandle(p->FTPFlagStrH,pathName,MAX_PATH_LEN))
+			goto done;	
+		if(err = GetNativePath(pathName,pathNameToWrite))
+			goto done;
+		if(err = XOPOpenFile(pathNameToWrite,0,&outputFile))
+			goto done;
+		
+		curl_easy_setopt(curl, CURLOPT_UPLOAD, 1) ;
+		curl_easy_setopt(curl, CURLOPT_READDATA, outputFile);
+	}
+	
+	
+	/* The URL of interest */
+	if (p->main0Encountered) {
+		// Parameter: p->urlStrH (test for NULL handle before using)
+		if (p->main0StrH == NULL) {
+			err = OH_EXPECTED_STRING;
+			goto done;
+		}
+		if(err = GetCStringFromHandle(p->main0StrH,url,MAX_URL_LENGTH))
 			goto done;
  		//Specify the URL to get
 		curl_easy_setopt(curl, CURLOPT_URL, url);
 	}
 	
 	/* Do you want to save the file to disc? */
-	if (p->FILEFlagEncountered) {
+	if (p->FILEFlagEncountered && !p->FTPFlagEncountered) {
 		// Parameter: p->FILEFlagStrH (test for NULL handle before using)
 		if (p->FILEFlagStrH == NULL) {
 			err = OH_EXPECTED_STRING;
@@ -158,9 +222,9 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 		XOPNotice("\r");
 		goto done;
 	}
-
+	
 	//if not in a file put into a string handle
-	if (!p->FILEFlagEncountered){
+	if (!p->FILEFlagEncountered && chunk.memory){
 		//data may not be null terminated
 //		myrealloc(chunk.memory,chunk.size+sizeof(char));
 //		chunk.size += 1;
@@ -183,6 +247,14 @@ done:
 		//always cleanup
 		curl_easy_cleanup(curl);
 	}
+	
+/*	if(formpost)
+		curl_formfree(formpost);
+*/
+	if(headerlist)
+      curl_slist_free_all (headerlist);
+ 
+ 
 	if (outputFile != NULL) 
 		err = XOPCloseFile(outputFile);
 	
@@ -200,7 +272,7 @@ RegisterEasyHTTP(void)
 	char* runtimeStrVarList;
 
 	// NOTE: If you change this template, you must change the easyHttpRuntimeParams structure as well.
-	cmdTemplate = "easyHTTP/auth=string/pass=string/file=string/proxy=string string";
+	cmdTemplate = "easyHTTP/auth=string/pass=string/file=string/proxy=string/post=string/ftp=string string";
 	runtimeNumVarList = "V_Flag";
 	runtimeStrVarList = "S_getHttp";
 	return RegisterOperation(cmdTemplate, runtimeNumVarList, runtimeStrVarList, sizeof(easyHttpRuntimeParams), (void*)ExecuteEasyHTTP, 0);
@@ -232,6 +304,8 @@ XOPEntry(void)
 	
 	switch (GetXOPMessage()) {
 		// We don't need to handle any messages for this XOP.
+		default:
+		break;
 	}
 	SetXOPResult(result);
 }
@@ -244,8 +318,14 @@ The message sent by the host must be INIT.
 main does any necessary initialization and then sets the XOPEntry field of the
 ioRecHandle to the address to be called for future messages.
 */
+#ifdef _MACINTOSH_
+HOST_IMPORT int main(IORecHandle ioRecHandle){
+#endif
+#ifdef _WINDOWS_
 HOST_IMPORT void
 main(IORecHandle ioRecHandle){
+#endif
+
 	int result;
 	
 	XOPInit(ioRecHandle);							// Do standard XOP initialization.
@@ -254,9 +334,14 @@ main(IORecHandle ioRecHandle){
 	
 	if (result = RegisterOperations()) {
 		SetXOPResult(result);
-		return;
+#ifdef _MACINTOSH_
+		return 0;
+#endif
 	}
 	
 	SetXOPResult(0);
+#ifdef _MACINTOSH_
+		return 0;
+#endif
 }
 
