@@ -3,7 +3,7 @@
 resource 'vers' (1) {						/* XOP version info */
 	0x01, 0x00, final, 0x00, 0,				/* version bytes and country integer */
 	"1.00",
-	"1.00, ï¿½ 2008, Andrew Nelson."
+	"1.00, © 1993 WaveMetrics, Inc., all rights reserved."
 };
 
 resource 'vers' (2) {						/* Igor version info */
@@ -16,7 +16,8 @@ resource 'STR#' (1100) {					/* custom error messages */
 	{
 		/* [1] */
 		"easyhttp requires Igor Pro 5.0 or later.",
-
+		/* [2] */
+		"error with POST string key:value; pairs.",
 	}
 };
 
