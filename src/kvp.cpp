@@ -1,12 +1,4 @@
-
-#include "easyHttp.h"
-using namespace std;
-#include <string>
-#include <vector>
-#include <algorithm>
-
-
-
+#include "kvp.h"
 
 int keyValues(const char* STR, keyValuePairs *kvp, const char *valDelim,const char* pairDelim)
 {

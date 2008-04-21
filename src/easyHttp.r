@@ -9,7 +9,7 @@ resource 'vers' (1) {						/* XOP version info */
 resource 'vers' (2) {						/* Igor version info */
 	0x05, 0x04, release, 0x00, 0,			/* version bytes and country integer */
 	"5.04",
-	"(for Igor Pro 2.00 or later)"
+	"(for Igor Pro 5.04 or later)"
 };
 
 resource 'STR#' (1100) {					/* custom error messages */
@@ -18,6 +18,10 @@ resource 'STR#' (1100) {					/* custom error messages */
 		"easyhttp requires Igor Pro 5.0 or later.",
 		/* [2] */
 		"error with POST string key:value; pairs.",
+		/* [3] */
+		"Wave must have at least 1 point",
+		/* [4] */
+		"Couldn't get an exclusive file lock on output file",
 	}
 };
 
@@ -39,23 +43,12 @@ resource 'STR#' (1101) {					// Misc strings for XOP.
 	}
 };
 
-//resource 'XOPF' (1100) {
-//	{
-		/* str1 = iPeekGetPeekData(host, port, instrument) */	/* This uses the direct call method */
-//		"iPeekGetPeekData",							/* function name */
-//		F_IO | F_EXTERNAL,					/* function category (string) */
-//		HSTRING_TYPE,						/* return value type str1 (string handle) */			
-//		{
-		//	HSTRING_TYPE,					/* host (string handle) */
-		//	NT_FP64,                         /* port (string handle) */
-        //    HSTRING_TYPE,                   /* instrument (string handle) */
-//		},
-//	}
-//};
 
 resource 'XOPC' (1100) {
 	{
 		"easyHttp",								// Name of operation.
 		XOPOp+UtilOP+compilableOp,			// Operation's category.
+		"THReasyHttp",
+		XOPOp+UtilOP+compilableOp+threadSafeOp,
 	}
 };
