@@ -14,6 +14,8 @@ BEGIN
 	"error with POST string key:value; pairs.\0",
 	/* [3] */
 	"Text wave must have at least 1 point\0",
+	/* [4] */
+	"Couldn't get an exclusive file lock on output file\0",
 
 	// You can add error messages here.
 

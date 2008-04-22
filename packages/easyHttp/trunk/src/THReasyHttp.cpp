@@ -83,12 +83,12 @@ ExecuteTHReasyHTTP(THReasyHTTPRuntimeParamsPtr p)
 	}
 	
 	/* for proxies*/
-	if(p->PROXYFlagEncountered){
-		if (p->PROXYFlagStrH == NULL) {
+	if(p->PROXFlagEncountered){
+		if (p->PROXFlagStrH == NULL) {
 			err = OH_EXPECTED_STRING;
 			goto done;
 		}
-		if(err = GetCStringFromHandle(p->PROXYFlagStrH,url,MAX_URL_LENGTH))
+		if(err = GetCStringFromHandle(p->PROXFlagStrH,url,MAX_URL_LENGTH))
 			goto done;
 		curl_easy_setopt(curl,CURLOPT_PROXY,url);
 	}

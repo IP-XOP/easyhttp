@@ -52,9 +52,9 @@ struct easyHttpRuntimeParams {
 	int FILEFlagParamsSet[1];
 
 	// Parameters for /PROXY flag group.
-	int PROXYFlagEncountered;
-	Handle PROXYFlagStrH;
-	int PROXYFlagParamsSet[1];
+	int PROXFlagEncountered;
+	Handle PROXFlagStrH;
+	int PROXFlagParamsSet[1];
 
 	// Parameters for /POST flag group.
 	int POSTFlagEncountered;
@@ -99,9 +99,9 @@ struct THReasyHTTPRuntimeParams {
 	int PASSFlagParamsSet[1];
 
 	// Parameters for /PROXY flag group.
-	int PROXYFlagEncountered;
-	Handle PROXYFlagStrH;
-	int PROXYFlagParamsSet[1];
+	int PROXFlagEncountered;
+	Handle PROXFlagStrH;
+	int PROXFlagParamsSet[1];
 
 	// Parameters for /POST flag group.
 	int POSTFlagEncountered;

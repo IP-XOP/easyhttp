@@ -63,12 +63,12 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	}
 	
 	/* for proxies*/
-	if(p->PROXYFlagEncountered){
-		if (p->PROXYFlagStrH == NULL) {
+	if(p->PROXFlagEncountered){
+		if (p->PROXFlagStrH == NULL) {
 			err = OH_EXPECTED_STRING;
 			goto done;
 		}
-		if(err = GetCStringFromHandle(p->PROXYFlagStrH,url,MAX_URL_LENGTH))
+		if(err = GetCStringFromHandle(p->PROXFlagStrH,url,MAX_URL_LENGTH))
 			goto done;
 		curl_easy_setopt(curl,CURLOPT_PROXY,url);
 	}
@@ -181,7 +181,7 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	}
 		
 done:
-	if((err | res)){
+	if((err || res)){
 		 SetOperationNumVar("V_flag",1);
 	} else {
 		err = SetOperationNumVar("V_flag",0);
@@ -219,7 +219,7 @@ RegisterEasyHTTP(void)
 	char* runtimeStrVarList;
 
 	// NOTE: If you change this template, you must change the easyHttpRuntimeParams structure as well.
-	cmdTemplate = "easyHTTP/auth=string/pass=string/file=string/proxy=string/post=string/ftp=string string";
+	cmdTemplate = "easyHTTP/auth=string/pass=string/file=string/prox=string/post=string/ftp=string string";
 	runtimeNumVarList = "V_Flag";
 	runtimeStrVarList = "S_getHttp";
 	return RegisterOperation(cmdTemplate, runtimeNumVarList, runtimeStrVarList, sizeof(easyHttpRuntimeParams), (void*)ExecuteEasyHTTP, 0);
