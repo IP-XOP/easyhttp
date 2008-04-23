@@ -1,7 +1,8 @@
-using namespace std;
 #include <string>
 #include <vector>
 #include <algorithm>
+
+using namespace std;
 
 struct keyValuePairs {
 	vector<string> keys;

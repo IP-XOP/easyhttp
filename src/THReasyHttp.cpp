@@ -1,7 +1,12 @@
 // Runtime param structure for THReasyHTTP operation.
 #include "easyHTTP.h"
-#include <sys/file.h>
 
+#ifdef _MACINTOSH_
+#include <sys/file.h>
+#endif
+#ifdef _WINDOWS_
+#include "flock.h"
+#endif
 int
 ExecuteTHReasyHTTP(THReasyHTTPRuntimeParamsPtr p)
 {
@@ -156,7 +161,12 @@ ExecuteTHReasyHTTP(THReasyHTTPRuntimeParamsPtr p)
 			goto done;
 		}
 		#endif
+#ifdef _WINDOWS_
+		if(err = flock(outputFile->_file,LOCK_EX))
+		goto done;
+#endif
 		
+
 		/* send all data to this function  */
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_filedata);
 		/*send in the file*/
@@ -224,6 +234,10 @@ done:
 		#ifdef _MACINTOSH_
 		funlockfile(outputFile);
 		#endif
+#ifdef _WINDOWS_
+		if(err = flock(outputFile->_file,LOCK_UN))
+		goto done;
+#endif
 	}
 	/* cleanup libcurl*/
 	curl_global_cleanup();
