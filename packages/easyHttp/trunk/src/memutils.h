@@ -29,16 +29,19 @@ initialisation:
 
 class MemoryStruct{
 public:
-	char *memory;
-	size_t memsize;
 	static size_t WriteMemoryCallback(void *ptr, size_t size, size_t nmemb,void*);
 	size_t WriteMemoryCallback(void *ptr, size_t size, size_t nmemb);
+	size_t getMemSize();
+	const char* getData();
 	
 	MemoryStruct();
+	MemoryStruct(void *ptr, size_t size, size_t nmemb);
 	~MemoryStruct();
 	
 	private:
 	static void *myrealloc(void *ptr, size_t size);
+	char *memory;
+	size_t memsize;
 };
 
 

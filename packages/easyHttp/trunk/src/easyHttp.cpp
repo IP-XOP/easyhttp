@@ -173,12 +173,8 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	}
 	
 	//if not in a file put into a string handle
-	if (!p->FILEFlagEncountered && chunk.memory){
-		//data may not be null terminated
-//		myrealloc(chunk.memory,chunk.size+sizeof(char));
-//		chunk.size += 1;
-//		*(chunk.memory + chunk.size-1) = (char)"\0";
-		if(err = SetOperationStrVar("S_getHttp",chunk.memory))
+	if (!p->FILEFlagEncountered && chunk.getData()){
+		if(err = SetOperationStrVar("S_getHttp",chunk.getData()))
 			goto done;
 	}
 		

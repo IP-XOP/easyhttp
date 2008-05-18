@@ -215,9 +215,7 @@ done:
 		MDSetNumericWavePointValue(p->main1WaveH,indices,value);
 	}
 	
-	if(chunk.memory)
-		free(chunk.memory);
-		
+	
 	if(hand)
 		DisposeHandle(hand);
 

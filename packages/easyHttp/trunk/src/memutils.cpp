@@ -1,16 +1,35 @@
 #include "memutils.h"
 
+//base constructor
 MemoryStruct::MemoryStruct(){
 	memory=NULL;
 	memsize=0;
 }
 
+//constructor with initial data
+MemoryStruct::MemoryStruct(void *ptr, size_t size, size_t nmemb){
+	memory=NULL;
+	memsize=0;
+	WriteMemoryCallback(ptr, size, nmemb);
+}
+
+//destructor free's the memory
 MemoryStruct::~MemoryStruct(){
 	if(memory)
 		free(memory);
 	memsize=0;
 }
 
+//return the size of the memory used
+size_t MemoryStruct::getMemSize(){
+	return memsize;
+};
+
+//return a pointer to the filled memory.
+const char* MemoryStruct::getData(){
+	return (const char*)memory;
+};
+	
 
 //create a platform independent routine for continuous reallocation of memory, appending data to it
 void *MemoryStruct::myrealloc(void *src_ptr, size_t size)
@@ -22,6 +41,10 @@ void *MemoryStruct::myrealloc(void *src_ptr, size_t size)
     else
 		return malloc(size);
 }
+
+//to use the static version you may have to define a function pointer
+//size_t (*f)(void*,size_t,size_t,void*)=(MemoryStruct::WriteMemoryCallback);
+//data has to be an object of MemoryStruct
 
 size_t
 MemoryStruct::WriteMemoryCallback(void *ptr, size_t size, size_t nmemb, void *data)
