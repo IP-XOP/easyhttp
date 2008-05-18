@@ -27,14 +27,20 @@ initialisation:
 	}
 */
 
-struct MemoryStruct {
+class MemoryStruct{
+public:
 	char *memory;
-	size_t size;
+	size_t memsize;
+	static size_t WriteMemoryCallback(void *ptr, size_t size, size_t nmemb,void*);
+	size_t WriteMemoryCallback(void *ptr, size_t size, size_t nmemb);
+	
+	MemoryStruct();
+	~MemoryStruct();
+	
+	private:
+	static void *myrealloc(void *ptr, size_t size);
 };
-typedef struct MemoryStruct MemoryStruct;
 
-size_t WriteMemoryCallback(void *ptr, size_t size, size_t nmemb, void *data);
-void *myrealloc(void *ptr, size_t size);
 
 /*
  * \brief Create a two-dimensional array in a single allocation
