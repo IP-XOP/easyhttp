@@ -31,8 +31,6 @@ ExecuteTHReasyHTTP(THReasyHTTPRuntimeParamsPtr p)
 	char curlerror[CURL_ERROR_SIZE+1];
 	
 	struct MemoryStruct chunk;
-	chunk.memory=NULL; /* we expect realloc(NULL, size) to work */
-    chunk.size = 0;    /* no data at this point */
 	
 	if( igorVersion < 602 )
 		return REQUIRES_IGOR_500;
@@ -174,7 +172,10 @@ ExecuteTHReasyHTTP(THReasyHTTPRuntimeParamsPtr p)
 		 
 	} else {
 		/*send all data to this function*/
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
+		//we want the static version
+		size_t (*writeBack)(void*, size_t, size_t,void*) = (MemoryStruct::WriteMemoryCallback);
+		
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeBack);
 		/* we pass our 'chunk' struct to the callback function */
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
 	}

@@ -1,7 +1,19 @@
 #include "memutils.h"
 
+MemoryStruct::MemoryStruct(){
+	memory=NULL;
+	memsize=0;
+}
+
+MemoryStruct::~MemoryStruct(){
+	if(memory)
+		free(memory);
+	memsize=0;
+}
+
+
 //create a platform independent routine for continuous reallocation of memory, appending data to it
-void *myrealloc(void *src_ptr, size_t size)
+void *MemoryStruct::myrealloc(void *src_ptr, size_t size)
 {
     /* There might be a realloc() out there that doesn't like reallocing
 	NULL pointers, so we take care of it here */
@@ -12,20 +24,33 @@ void *myrealloc(void *src_ptr, size_t size)
 }
 
 size_t
-WriteMemoryCallback(void *ptr, size_t size, size_t nmemb, void *data)
+MemoryStruct::WriteMemoryCallback(void *ptr, size_t size, size_t nmemb, void *data)
 {
     size_t realsize = size * nmemb;
-    struct MemoryStruct *mem = (struct MemoryStruct *)data;
+    MemoryStruct *mem = (MemoryStruct *)data;
 	
-    mem->memory = (char *)myrealloc(mem->memory, mem->size + realsize + 1);
+    mem->memory = (char *)myrealloc(mem->memory, mem->memsize + realsize + 1);
     if (mem->memory) {
-		memcpy(&(mem->memory[mem->size]), ptr, realsize);
-		mem->size += realsize;
-		mem->memory[mem->size] = 0;
+		memcpy(&(mem->memory[mem->memsize]), ptr, realsize);
+		mem->memsize += realsize;
+		mem->memory[mem->memsize] = 0;
     }
     return realsize;
 }
 
+size_t
+MemoryStruct::WriteMemoryCallback(void *ptr, size_t size, size_t nmemb)
+{
+    size_t realsize = size * nmemb;
+	
+    memory = (char *)myrealloc(memory, memsize + realsize + 1);
+    if (memory) {
+		memcpy(&(memory[memsize]), ptr, realsize);
+		memsize += realsize;
+		memory[memsize] = 0;
+    }
+    return realsize;
+}
 
 /*
  * \brief Create a two-dimensional array in a single allocation
