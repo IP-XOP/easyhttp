@@ -1,6 +1,15 @@
 // Runtime param structure for GetHTTP operation.
 #include "easyHttp.h"
  
+  static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *stream)
+  {
+    /* in real-world cases, this would probably get this data differently
+       as this fread() stuff is exactly what the library already would do
+       by default internally */
+    size_t retcode = fread(ptr, size, nmemb, (XOP_FILE_REF) stream);
+    return retcode;
+  }
+ 
 int
 ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 {
@@ -10,23 +19,14 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
    	char url[MAX_URL_LENGTH+1];
 	char pathName[MAX_PATH_LEN+1];
 	char pathNameToWrite[MAX_PATH_LEN+1];
+	char pathNameToRead[MAX_PATH_LEN+1];
 	char userpassword[MAX_PASSLEN+1];
-	char postfields[4097];
 
-/*	keyValuePairs kvp;
-	int ii;		
-	struct curl_httppost *formpost=NULL;
-	struct curl_httppost *lastptr=NULL;
-*/
-    struct curl_slist *headerlist=NULL;
-	
-	
+	XOP_FILE_REF inputFile = NULL;
 	XOP_FILE_REF outputFile = NULL;
 	char curlerror[CURL_ERROR_SIZE+1];
 	
 	MemoryStruct chunk;
-//	chunk.memory=NULL; /* we expect realloc(NULL, size) to work */
-//	chunk.size = 0;    /* no data at this point */
 	
 	if( igorVersion < 503 )
 		return REQUIRES_IGOR_500;
@@ -92,26 +92,15 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 			err = OH_EXPECTED_STRING;
 			goto done;
 		}
-		if(err = GetCStringFromHandle(p->POSTFlagStrH,postfields,4096))
+		if(err = GetCStringFromHandle(p->POSTFlagStrH,pathName,MAX_PATH_LEN))
+			goto done;	
+		if(err = GetNativePath(pathName,pathNameToRead))
+			goto done;
+		if(err = XOPOpenFile(pathNameToRead,0,&inputFile))
 			goto done;
 		 
-		 curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postfields);
-		 curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, strlen(postfields));
-  
-/*		if(keyValues(postfields, &kvp,":",";")){
-			err = ERR_KEY_VAL;
-			goto done;
-		}
-		for(ii = 0 ; ii < kvp.keys.size() ; ii ++){
-			    curl_formadd(&formpost,
-                 &lastptr,
-                 CURLFORM_COPYNAME, kvp.keys.at(ii).c_str(),
-                 CURLFORM_COPYCONTENTS, kvp.values.at(ii).c_str(),
-                 CURLFORM_END);
-		}
-		curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);		 
-*/
-
+		curl_easy_setopt(curl, CURLOPT_READDATA,inputFile);
+		curl_easy_setopt(curl, CURLOPT_POST,1L);
 	}	
 		
 	if(p->FTPFlagEncountered){
@@ -121,13 +110,13 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 		}
 		if(err = GetCStringFromHandle(p->FTPFlagStrH,pathName,MAX_PATH_LEN))
 			goto done;	
-		if(err = GetNativePath(pathName,pathNameToWrite))
+		if(err = GetNativePath(pathName,pathNameToRead))
 			goto done;
-		if(err = XOPOpenFile(pathNameToWrite,0,&outputFile))
+		if(err = XOPOpenFile(pathNameToRead,0,&inputFile))
 			goto done;
 		
 		curl_easy_setopt(curl, CURLOPT_UPLOAD, 1) ;
-		curl_easy_setopt(curl, CURLOPT_READDATA, outputFile);
+		curl_easy_setopt(curl, CURLOPT_READDATA, inputFile);
 	}
 	
 	/* Do you want to save the file to disc? */
@@ -190,16 +179,12 @@ done:
 		curl_easy_cleanup(curl);
 	}
 	
-/*	if(formpost)
-		curl_formfree(formpost);
-*/
-	if(headerlist)
-      curl_slist_free_all (headerlist);
- 
- 
 	if (outputFile != NULL) 
 		err = XOPCloseFile(outputFile);
-	
+
+	if (inputFile != NULL) 
+		err = XOPCloseFile(inputFile);
+			
 	/* cleanup libcurl*/
 	curl_global_cleanup();
 	

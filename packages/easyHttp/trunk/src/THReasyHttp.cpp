@@ -16,21 +16,19 @@ ExecuteTHReasyHTTP(THReasyHTTPRuntimeParamsPtr p)
    	char url[MAX_URL_LENGTH+1];
 	char pathName[MAX_PATH_LEN+1];
 	char pathNameToWrite[MAX_PATH_LEN+1];
+	char pathNameToRead[MAX_PATH_LEN+1];
 	char userpassword[MAX_PASSLEN+1];
-	char postfields[4097];
-	
 	Handle hand = NULL;
 	
 	long dimensionSizes[MAX_DIMENSIONS+1]; // Array of new dimension sizes 
 	long indices[MAX_DIMENSIONS]; // Identifies the point of interest 
 	double value[2];
 	
-    struct curl_slist *headerlist=NULL;
-	
+ 	XOP_FILE_REF inputFile = NULL;	
 	XOP_FILE_REF outputFile = NULL;
 	char curlerror[CURL_ERROR_SIZE+1];
 	
-	struct MemoryStruct chunk;
+	MemoryStruct chunk;
 	
 	if( igorVersion < 602 )
 		return REQUIRES_IGOR_500;
@@ -115,11 +113,15 @@ ExecuteTHReasyHTTP(THReasyHTTPRuntimeParamsPtr p)
 			err = OH_EXPECTED_STRING;
 			goto done;
 		}
-		if(err = GetCStringFromHandle(p->POSTFlagStrH,postfields,4096))
+		if(err = GetCStringFromHandle(p->POSTFlagStrH,pathName,MAX_PATH_LEN))
+			goto done;	
+		if(err = GetNativePath(pathName,pathNameToRead))
+			goto done;
+		if(err = XOPOpenFile(pathNameToRead,0,&inputFile))
 			goto done;
 		 
-		 curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postfields);
-		 curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, strlen(postfields));
+		curl_easy_setopt(curl, CURLOPT_READDATA,inputFile);
+		curl_easy_setopt(curl, CURLOPT_POST,1L);
 	}	
 		
 	if(p->FTPFlagEncountered){
@@ -129,13 +131,13 @@ ExecuteTHReasyHTTP(THReasyHTTPRuntimeParamsPtr p)
 		}
 		if(err = GetCStringFromHandle(p->FTPFlagStrH,pathName,MAX_PATH_LEN))
 			goto done;	
-		if(err = GetNativePath(pathName,pathNameToWrite))
+		if(err = GetNativePath(pathName,pathNameToRead))
 			goto done;
-		if(err = XOPOpenFile(pathNameToWrite,0,&outputFile))
+		if(err = XOPOpenFile(pathNameToRead,0,&inputFile))
 			goto done;
 		
 		curl_easy_setopt(curl, CURLOPT_UPLOAD, 1) ;
-		curl_easy_setopt(curl, CURLOPT_READDATA, outputFile);
+		curl_easy_setopt(curl, CURLOPT_READDATA, inputFile);
 	}	
 
 	/* Do you want to save the file to disc? */
@@ -224,10 +226,10 @@ done:
 		curl_easy_cleanup(curl);
 	}
 
-	if(headerlist)
-      curl_slist_free_all (headerlist);
- 
- 
+
+	if(inputFile != NULL)
+		XOPCloseFile(inputFile);
+	
 	if (outputFile != NULL){
 		err = XOPCloseFile(outputFile);
 		#ifdef _MACINTOSH_
