@@ -52,6 +52,20 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
  		//Specify the URL to get
 		curl_easy_setopt(curl, CURLOPT_URL, url);
 	}
+
+	if (p->main1Encountered) {
+		if (p->main1ParamsSet[0]) {
+			// Optional parameter: p->main1VarName
+			int dataTypePtr;
+			if(err = VarNameToDataType(p->main1VarName, &dataTypePtr))
+				goto done;
+			if(dataTypePtr){
+				err = OH_EXPECTED_VARNAME;
+				goto done;
+			}
+		}
+	}
+
 	// Flag parameters.
 	
 	if (p->AUTHFlagEncountered) {
@@ -165,6 +179,9 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	if (!p->FILEFlagEncountered && chunk.getData()){
 		if(err = SetOperationStrVar("S_getHttp",chunk.getData()))
 			goto done;
+		if(p->main1ParamsSet[0])
+			if(err = StoreStringDataUsingVarName(p->main1VarName,chunk.getData(),chunk.getMemSize()))
+				goto done;
 	}
 		
 done:
@@ -199,7 +216,7 @@ RegisterEasyHTTP(void)
 	char* runtimeStrVarList;
 
 	// NOTE: If you change this template, you must change the easyHttpRuntimeParams structure as well.
-	cmdTemplate = "easyHTTP/auth=string/pass=string/file=string/prox=string/post=string/ftp=string string";
+	cmdTemplate = "easyHTTP/auth=string/pass=string/file=string/prox=string/post=string/ftp=string string[,varname]";
 	runtimeNumVarList = "V_Flag";
 	runtimeStrVarList = "S_getHttp";
 	return RegisterOperation(cmdTemplate, runtimeNumVarList, runtimeStrVarList, sizeof(easyHttpRuntimeParams), (void*)ExecuteEasyHTTP, 0);

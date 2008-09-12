@@ -73,6 +73,11 @@ struct easyHttpRuntimeParams {
 	Handle main0StrH;
 	int main0ParamsSet[1];
 
+	// Parameters for simple main group #1.
+	int main1Encountered;
+	char main1VarName[MAX_OBJ_NAME+1];		// Optional parameter.
+	int main1ParamsSet[1];	
+
 	// These are postamble fields that Igor sets.
 	int calledFromFunction;					// 1 if called from a user function, 0 otherwise.
 	int calledFromMacro;					// 1 if called from a macro, 0 otherwise.
