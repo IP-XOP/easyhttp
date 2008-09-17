@@ -20,6 +20,14 @@ MemoryStruct::~MemoryStruct(){
 	memsize=0;
 }
 
+//resets the memory
+void MemoryStruct::reset(){
+	if(memory)
+		free(memory);
+	memsize = 0;
+	memory = NULL;
+}
+
 //return the size of the memory used
 size_t MemoryStruct::getMemSize(){
 	return memsize;
@@ -44,19 +52,19 @@ void *MemoryStruct::myrealloc(void *src_ptr, size_t size)
 
 //to use the static version you may have to define a function pointer
 //size_t (*f)(void*,size_t,size_t,void*)=(MemoryStruct::WriteMemoryCallback);
-//data has to be an object of MemoryStruct
+//data has to be a point of a MemoryStruct object
 
 size_t
-MemoryStruct::WriteMemoryCallback(void *ptr, size_t size, size_t nmemb, void *data)
+MemoryStruct::WriteMemoryCallback(void *ptr, size_t size, size_t nmemb, void *Data)
 {
     size_t realsize = size * nmemb;
-    MemoryStruct *mem = (MemoryStruct *)data;
+    MemoryStruct *mem = (MemoryStruct *)Data;
 	
-    mem->memory = (char *)myrealloc(mem->memory, mem->memsize + realsize + 1);
+    mem->memory = (char *)myrealloc(mem->memory, mem->memsize + realsize);
     if (mem->memory) {
 		memcpy(&(mem->memory[mem->memsize]), ptr, realsize);
 		mem->memsize += realsize;
-		mem->memory[mem->memsize] = 0;
+//		mem->memory[mem->memsize] = 0;
     }
     return realsize;
 }
@@ -66,11 +74,10 @@ MemoryStruct::WriteMemoryCallback(void *ptr, size_t size, size_t nmemb)
 {
     size_t realsize = size * nmemb;
 	
-    memory = (char *)myrealloc(memory, memsize + realsize + 1);
+    memory = (char *)myrealloc(memory, memsize + realsize);
     if (memory) {
 		memcpy(&(memory[memsize]), ptr, realsize);
 		memsize += realsize;
-		memory[memsize] = 0;
     }
     return realsize;
 }

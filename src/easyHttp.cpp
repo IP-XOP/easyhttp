@@ -177,11 +177,14 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	
 	//if not in a file put into a string handle
 	if (!p->FILEFlagEncountered && chunk.getData()){
-		if(err = SetOperationStrVar("S_getHttp",chunk.getData()))
-			goto done;
 		if(p->main1ParamsSet[0])
 			if(err = StoreStringDataUsingVarName(p->main1VarName,chunk.getData(),chunk.getMemSize()))
 				goto done;
+		char nul[1];
+		nul[0] = 0x00;
+		chunk.WriteMemoryCallback(&nul, sizeof(char), 1);
+		if(err = SetOperationStrVar("S_getHttp",chunk.getData()))
+			goto done;
 	}
 		
 done:

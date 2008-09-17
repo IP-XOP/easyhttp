@@ -2,46 +2,72 @@
 #include <stdlib.h>
 #include <string.h>
 
-//reallocation of memory utility
 /**
-initialisation:
-	
-	struct MemoryStruct chunk;
-	chunk.memory=NULL; 
-	chunk.size = 0;    
+*MemoryStruct - A dynamic memory re-writer.
+*The MemoryStruct class is used as a storage mechanism for data.  It can be sent extra data
+*as and when required. The contiguous memory can then be accessed at a later stage.
 */
-
-/** usage:
-	WriteMemoryCallback(src_ptr, sizeof(char), numchar, &chunk);
-	if(chunk.memory == NULL){
-		error("Mem allocation failed\n"); 
-		continue; 
-	}
-*/
-
-/**
-	if(chunk.memory!=NULL){
-		free(chunk.memory);
-		chunk.size=0;
-		chunk.memory = NULL;
-	}
-*/
-
 class MemoryStruct{
 public:
-	static size_t WriteMemoryCallback(void *ptr, size_t size, size_t nmemb,void*);
+	/**
+	*Writes data to a MemoryStruct object with a static method. Example:
+	*MemoryStruct a; double *doublearray; long numdoubles; WriteMemoryCallback(doublearray, sizeof(double), numdoubles, &a);
+	*@param ptr A pointer to the data that you wish to store in the MemoryStruct object
+	*@param size The size of the type of data you wish to store
+	*@param nmemb The number of data you are trying to store
+	*@param Data A MemoryStruct object to which the data will be appended.
+	*@return The amount of memory allocated for the data you are trying to write
+	*/
+	static size_t WriteMemoryCallback(void *ptr, size_t size, size_t nmemb,void* Data);
+
+	/**
+	*Writes data to a MemoryStruct object. 	
+	Example:
+	*MemoryStruct a; double *doublearray; long numdoubles; a.WriteMemoryCallback(doublearray, sizeof(double), numdoubles);
+	*@param ptr A pointer to the data that you wish to store in the MemoryStruct object.
+	*@param size The size of the type of data you wish to store.
+	*@param nmemb The number of data you are trying to store.
+	*@return The amount of memory allocated for the data you are trying to write.
+	*/
 	size_t WriteMemoryCallback(void *ptr, size_t size, size_t nmemb);
+	/**
+	*Obtain the number of bytes held in a MemoryStruct object.	Example:
+	*MemoryStruct a; long bytesAllocated; bytesAllocated = a.getMemSize();
+	*@return The total amount of memory allocated in the MemoryStruct object
+	*/
 	size_t getMemSize();
+	/**
+	*Access the data held in a MemoryStruct object.
+	*@return A constant character pointer to the start of the memory that you have stored.
+	*/
 	const char* getData();
 	
+	/**
+	*Default constructor.
+	*/
 	MemoryStruct();
+	/**
+	*Constructor with some initial data to store.
+	*/
 	MemoryStruct(void *ptr, size_t size, size_t nmemb);
+	/**
+	*Destructor frees the memory stored in the MemoryStruct object.
+	*/
 	~MemoryStruct();
-	
+
+	/**
+	*reset allows the MemoryStruct object to be reused
+	*/
+	void reset();
+		
 	private:
+	/**
+	*A platform independent reallocator of memory.  Uses malloc and realloc to assign more memory.
+	*/
 	static void *myrealloc(void *ptr, size_t size);
-	char *memory;
-	size_t memsize;
+	
+	char *memory; /**< A pointer to the data stored. */ 
+	size_t memsize; /**< The number of bytes stored. */ 
 };
 
 
