@@ -168,22 +168,31 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	curl_easy_setopt(curl,CURLOPT_FOLLOWLOCATION,1);
 	
 	/*get it*/
-	if(res = curl_easy_perform(curl)){
-		XOPNotice("easyHTTP error: ");
-		XOPNotice(curlerror);
-		XOPNotice("\r");
+	try{
+		if(res = curl_easy_perform(curl)){
+			XOPNotice("easyHTTP error: ");
+			XOPNotice(curlerror);
+			XOPNotice("\r");
+			goto done;
+		}
+	} catch (bad_alloc&){
+		err = NOMEM;
 		goto done;
 	}
 	
 	//if not in a file put into a string handle
 	if (!p->FILEFlagEncountered && chunk.getData()){
 		if(p->main1ParamsSet[0])
-			if(err = StoreStringDataUsingVarName(p->main1VarName,chunk.getData(),chunk.getMemSize()))
+			if(err = StoreStringDataUsingVarName(p->main1VarName,(const char*)chunk.getData(),chunk.getMemSize()))
 				goto done;
 		char nul[1];
 		nul[0] = 0x00;
-		chunk.WriteMemoryCallback(&nul, sizeof(char), 1);
-		if(err = SetOperationStrVar("S_getHttp",chunk.getData()))
+		try{
+			chunk.WriteMemoryCallback(&nul, sizeof(char), 1);
+		} catch (bad_alloc&){
+			err = NOMEM;
+		}
+		if(!err && (err = SetOperationStrVar("S_getHttp",(const char*)chunk.getData())))
 			goto done;
 	}
 		
