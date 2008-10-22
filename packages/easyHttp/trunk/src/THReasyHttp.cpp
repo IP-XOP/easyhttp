@@ -138,6 +138,8 @@ ExecuteTHReasyHTTP(THReasyHTTPRuntimeParamsPtr p)
 		
 		curl_easy_setopt(curl, CURLOPT_UPLOAD, 1) ;
 		curl_easy_setopt(curl, CURLOPT_READDATA, inputFile);
+		curl_easy_setopt(curl, CURLOPT_FTP_CREATE_MISSING_DIRS, 1L);
+
 	}	
 
 	/* Do you want to save the file to disc? */
