@@ -128,8 +128,12 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 			goto done;
 		if(err = XOPOpenFile(pathNameToRead,0,&inputFile))
 			goto done;
-		
+		unsigned long numBytes = 0;
+		if(err = XOPNumberOfBytesInFile(inputFile, &numBytes))
+			goto done;
+
 		curl_easy_setopt(curl, CURLOPT_UPLOAD, 1) ;
+		curl_easy_setopt(curl, CURLOPT_INFILESIZE_LARGE, (curl_off_t) numBytes);
 		curl_easy_setopt(curl, CURLOPT_READDATA, inputFile);
 		curl_easy_setopt(curl, CURLOPT_FTP_CREATE_MISSING_DIRS, 1L);
 	}
