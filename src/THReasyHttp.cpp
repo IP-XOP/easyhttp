@@ -226,6 +226,7 @@ done:
 	if(curl){
 		//always cleanup
 		curl_easy_cleanup(curl);
+		curl = NULL;
 	}
 
 
@@ -256,7 +257,7 @@ RegisterTHReasyHTTP(void)
 	char* runtimeStrVarList;
 
 	// NOTE: If you change this template, you must change the THReasyHTTPRuntimeParams structure as well.
-	cmdTemplate = "THReasyHTTP/auth=string/pass=string/proxy=string/post=string/ftp=string string, wave,string";
+	cmdTemplate = "THReasyHTTP/auth=string/pass=string/prox=string/post=string/ftp=string string, wave,string";
 	runtimeNumVarList = "";
 	runtimeStrVarList = "";
 	return RegisterOperation(cmdTemplate, runtimeNumVarList, runtimeStrVarList, sizeof(THReasyHTTPRuntimeParams), (void*)ExecuteTHReasyHTTP, kOperationIsThreadSafe);

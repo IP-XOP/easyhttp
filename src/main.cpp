@@ -5,6 +5,9 @@ static int
 RegisterOperations(void)		// Register any operations with Igor.
 {
 	int result;
+
+	//setup any globals that Curl needs.
+	result = curl_global_init(CURL_GLOBAL_ALL);
 	
 	// Register XOP1 operation.
 	if (result = RegisterEasyHTTP())
@@ -32,6 +35,10 @@ XOPEntry(void)
 	long result = 0;
 	
 	switch (GetXOPMessage()) {
+			break;
+		case CLEANUP:
+			curl_global_cleanup();
+			break;
 		// We don't need to handle any messages for this XOP.
 		default:
 		break;
