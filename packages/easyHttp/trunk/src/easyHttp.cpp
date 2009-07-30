@@ -21,7 +21,6 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	char pathNameToWrite[MAX_PATH_LEN+1];
 	char pathNameToRead[MAX_PATH_LEN+1];
 	char userpassword[MAX_PASSLEN+1];
-
 	XOP_FILE_REF inputFile = NULL;
 	XOP_FILE_REF outputFile = NULL;
 	char curlerror[CURL_ERROR_SIZE+1];
