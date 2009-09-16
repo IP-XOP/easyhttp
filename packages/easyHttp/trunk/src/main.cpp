@@ -1,6 +1,24 @@
 // Runtime param structure for GetHTTP operation.
 #include "easyHttp.h"
 
+easyHttpPreferencesHandle thePreferences;
+
+static void initialisePreferences(){
+	//reference to references handle is initially NULL
+	thePreferences = NULL;
+	//get the preferences
+	GetXOPPrefsHandle((Handle*) &thePreferences);
+	//you should test the preferences handle for non-NULL behaviour before using it.
+}
+
+static void saveAndCleanupPreferences(){
+	//only if there are preferences will you save them.
+	if(thePreferences){
+		SaveXOPPrefsHandle((Handle) thePreferences);
+		DisposeHandle((Handle) thePreferences);
+	}
+}
+
 static int
 RegisterOperations(void)		// Register any operations with Igor.
 {
@@ -33,13 +51,17 @@ static void
 XOPEntry(void)
 {	
 	long result = 0;
-	
-	switch (GetXOPMessage()) {
+	long msg = GetXOPMessage();
+	switch (msg) {
+		case INIT:
+			//load the easyHttp preferences (mainly proxy settings)
+			initialisePreferences();
 			break;
 		case CLEANUP:
 			curl_global_cleanup();
+			//save the easyHttp preferences (mainly proxy settings)
+			saveAndCleanupPreferences();
 			break;
-		// We don't need to handle any messages for this XOP.
 		default:
 		break;
 	}
@@ -68,6 +90,9 @@ main(IORecHandle ioRecHandle){
 	
 	SetXOPEntry(XOPEntry);							// Set entry point for future calls.
 	
+	//get the proxy preferences
+	initialisePreferences();
+
 	if (result = RegisterOperations()) {
 		SetXOPResult(result);
 #ifdef _MACINTOSH_
