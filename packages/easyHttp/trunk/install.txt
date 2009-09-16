@@ -5,4 +5,5 @@ you can either use the installer to put the XOP in the right place or you can ma
 Mac:
 
 you can either use the installer to put the XOP in the right place or you can manually install the XOP from the mac/easyHttp.dmg/easyHttp.xop yourself.  The installer places easyHttp.xop in "/User Procedures/motofit/easyHttp", then creates a shortcut to the XOP file in "/Igor Extensions".  
-If you want to use SFTP/SCP AND you have an Intel computer, then I recommend you use the XOP contained in i386_easyHttp_with_sftp_scp.dmg
+If you have an Intel computer, then I recommend you use the XOP contained in easyHttp.dmg
+If you have a PPC computer then you cannot use the installer programs (that is only intel), you have to use the XOP in PPC_easyHttp.dmg.
