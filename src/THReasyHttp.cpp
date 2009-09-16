@@ -18,6 +18,8 @@ ExecuteTHReasyHTTP(THReasyHTTPRuntimeParamsPtr p)
 	char pathNameToWrite[MAX_PATH_LEN+1];
 	char pathNameToRead[MAX_PATH_LEN+1];
 	char userpassword[MAX_PASSLEN+1];
+	char proxyUserPassword[MAX_PASSLEN+1];
+
 	Handle hand = NULL;
 	
 	long dimensionSizes[MAX_DIMENSIONS+1]; // Array of new dimension sizes 
@@ -93,6 +95,17 @@ ExecuteTHReasyHTTP(THReasyHTTPRuntimeParamsPtr p)
 			goto done;
 		curl_easy_setopt(curl,CURLOPT_PROXY,url);
 	}
+	
+	if(p->PPASFlagEncountered){
+		if (p->PPASFlagStrH == NULL) {
+			err = OH_EXPECTED_STRING;
+			goto done;
+		}
+		if(err = GetCStringFromHandle(p->PPASFlagStrH, proxyUserPassword, MAX_PASSLEN))
+			goto done;
+		curl_easy_setopt(curl, CURLOPT_PROXYUSERPWD, proxyUserPassword);
+	}
+
 	
 	/* For Authentication */
 	if (p->PASSFlagEncountered) {
@@ -261,7 +274,7 @@ RegisterTHReasyHTTP(void)
 	char* runtimeStrVarList;
 
 	// NOTE: If you change this template, you must change the THReasyHTTPRuntimeParams structure as well.
-	cmdTemplate = "THReasyHTTP/auth=string/pass=string/prox=string/post=string/ftp=string string, wave,string";
+	cmdTemplate = "THReasyHTTP/auth=string/pass=string/prox=string/ppas=string/post=string/ftp=string string, wave,string";
 	runtimeNumVarList = "";
 	runtimeStrVarList = "";
 	return RegisterOperation(cmdTemplate, runtimeNumVarList, runtimeStrVarList, sizeof(THReasyHTTPRuntimeParams), (void*)ExecuteTHReasyHTTP, kOperationIsThreadSafe);

@@ -33,8 +33,25 @@ HOST_IMPORT void main(IORecHandle ioRecHandle);
 using namespace std;
 
 #include "XOPStructureAlignmentTwoByte.h"	// All structures passed to Igor are two-byte aligned.
+struct easyHttpPreferences {				// this is a structure to save preferences for 
+	char proxyURLandPort[MAX_URL_LENGTH+1];				// Where to get input value, where to store output value.
+	char proxyUserNameandPassword[MAX_PASSLEN+1];
+};
+typedef struct easyHttpPreferences easyHttpPreferences;
+typedef struct easyHttpPreferences *easyHttpPreferencesPtr;
+typedef struct easyHttpPreferences **easyHttpPreferencesHandle;
+#include "XOPStructureAlignmentReset.h"		// Reset structure alignment to default.
+
+
+#include "XOPStructureAlignmentTwoByte.h"	// All structures passed to Igor are two-byte aligned.
 struct easyHttpRuntimeParams {
 	// Flag parameters.
+	
+	// Parameters for /S flag group.
+	// this flag signifies that you want to save the proxy settings (both URL:port and username:password) in the preferences file
+	int SFlagEncountered;
+	// There are no fields for this group because it has no parameters.
+	
 
 	// Parameters for /AUTH flag group.
 	int AUTHFlagEncountered;
@@ -55,6 +72,11 @@ struct easyHttpRuntimeParams {
 	int PROXFlagEncountered;
 	Handle PROXFlagStrH;
 	int PROXFlagParamsSet[1];
+	
+	// Parameters for /PPAS flag group.
+	int PPASFlagEncountered;
+	Handle PPASFlagStrH;
+	int PPASFlagParamsSet[1];
 
 	// Parameters for /POST flag group.
 	int POSTFlagEncountered;
@@ -92,7 +114,7 @@ int RegisterEasyHTTP(void);
 #include "XOPStructureAlignmentTwoByte.h"	// All structures passed to Igor are two-byte aligned.
 struct THReasyHTTPRuntimeParams {
 	// Flag parameters.
-
+	
 	// Parameters for /AUTH flag group.
 	int AUTHFlagEncountered;
 	Handle AUTHFlagStrH;
@@ -103,11 +125,16 @@ struct THReasyHTTPRuntimeParams {
 	Handle PASSFlagStrH;
 	int PASSFlagParamsSet[1];
 
-	// Parameters for /PROXY flag group.
+	// Parameters for /PROX flag group.
 	int PROXFlagEncountered;
 	Handle PROXFlagStrH;
 	int PROXFlagParamsSet[1];
 
+	// Parameters for /PPAS flag group.
+	int PPASFlagEncountered;
+	Handle PPASFlagStrH;
+	int PPASFlagParamsSet[1];
+	
 	// Parameters for /POST flag group.
 	int POSTFlagEncountered;
 	Handle POSTFlagStrH;

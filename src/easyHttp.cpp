@@ -16,11 +16,14 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	int err = 0;
 	CURL *curl = NULL;
 	CURLcode res;
+	extern easyHttpPreferencesHandle thePreferences;
+	long prefsState;
    	char url[MAX_URL_LENGTH+1];
 	char pathName[MAX_PATH_LEN+1];
 	char pathNameToWrite[MAX_PATH_LEN+1];
 	char pathNameToRead[MAX_PATH_LEN+1];
 	char userpassword[MAX_PASSLEN+1];
+	char proxyUserPassword[MAX_PASSLEN+1];
 	XOP_FILE_REF inputFile = NULL;
 	XOP_FILE_REF outputFile = NULL;
 	char curlerror[CURL_ERROR_SIZE+1];
@@ -75,16 +78,94 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 		}
 	}
 	
-	/* for proxies*/
+	/* for proxies
+	1) see if there is a proxy specified, command line always gets preference.
+	2) if there isn't then see if the IGOR preferences have one
+	*/
+	if(err = GetPrefsState(&prefsState))
+		goto done;
+	
 	if(p->PROXFlagEncountered){
 		if (p->PROXFlagStrH == NULL) {
 			err = OH_EXPECTED_STRING;
 			goto done;
 		}
-		if(err = GetCStringFromHandle(p->PROXFlagStrH,url,MAX_URL_LENGTH))
+		if(err = GetCStringFromHandle(p->PROXFlagStrH, url, MAX_URL_LENGTH))
 			goto done;
-		curl_easy_setopt(curl,CURLOPT_PROXY,url);
+		curl_easy_setopt(curl, CURLOPT_PROXY, url);
+
+		//you want to save the proxy in the IGOR preferences file
+		if(p->SFlagEncountered){
+			//if the preferences handle doesn't exist we have to create it.
+			if(!thePreferences){
+				thePreferences = (easyHttpPreferencesHandle) NewHandle(sizeof(easyHttpPreferences));
+				if(!thePreferences){
+					err = MemError();
+					goto done;
+				}
+				memset(*thePreferences, 0, GetHandleSize((Handle) thePreferences));
+			}
+			//just check if the preferences handle is changed in size.
+			if(GetHandleSize((Handle) thePreferences) != sizeof(easyHttpPreferences)){
+				SetHandleSize((Handle) thePreferences, sizeof(easyHttpPreferences));
+				if(err = MemError())
+					goto done;
+				memset(*thePreferences, 0, GetHandleSize((Handle) thePreferences));
+			}
+			//now put the proxy into the preferences handle
+			MoveLockHandle((Handle) thePreferences);
+			memset((*thePreferences)->proxyURLandPort, 0, sizeof((*thePreferences)->proxyURLandPort));
+			strncpy((*thePreferences)->proxyURLandPort, url, sizeof((*thePreferences)->proxyURLandPort));
+			HUnlock((Handle) thePreferences);			
+		}
+	} else if(thePreferences && prefsState){
+		MoveLockHandle((Handle) thePreferences);
+		if(strlen((*thePreferences)->proxyURLandPort))
+			curl_easy_setopt(curl, CURLOPT_PROXY, (*thePreferences)->proxyURLandPort);
+		HUnlock((Handle) thePreferences);
 	}
+	
+	if(p->PPASFlagEncountered){
+		if (p->PPASFlagStrH == NULL) {
+			err = OH_EXPECTED_STRING;
+			goto done;
+		}
+		if(err = GetCStringFromHandle(p->PPASFlagStrH, proxyUserPassword, MAX_PASSLEN))
+			goto done;
+		curl_easy_setopt(curl, CURLOPT_PROXYUSERPWD, proxyUserPassword);
+		
+		//you want to save the proxy in the IGOR preferences file
+		if(p->SFlagEncountered){
+			//if the preferences handle doesn't exist we have to create it.
+			if(!thePreferences){
+				thePreferences = (easyHttpPreferencesHandle) NewHandle(sizeof(easyHttpPreferences));
+				if(thePreferences== NULL){
+					err = MemError();
+					goto done;
+				}
+				memset(*thePreferences, 0, GetHandleSize((Handle) thePreferences));
+			}
+			//just check if the preferences handle is changed in size.
+			if(GetHandleSize((Handle) thePreferences) != sizeof(easyHttpPreferences)){
+				SetHandleSize((Handle) thePreferences, sizeof(easyHttpPreferences));
+				if(err = MemError())
+					goto done;
+				memset(*thePreferences, 0, GetHandleSize((Handle) thePreferences));
+			}
+			
+			//now put the proxy into the preferences handle
+			MoveLockHandle((Handle) thePreferences);
+			memset((*thePreferences)->proxyUserNameandPassword, 0, sizeof((*thePreferences)->proxyUserNameandPassword));
+			strncpy((*thePreferences)->proxyUserNameandPassword, proxyUserPassword, sizeof((*thePreferences)->proxyUserNameandPassword));
+			HUnlock((Handle) thePreferences);			
+		}
+	} else if(thePreferences && prefsState){
+		MoveLockHandle((Handle) thePreferences);
+		if(strlen((*thePreferences)->proxyUserNameandPassword))
+			curl_easy_setopt(curl, CURLOPT_PROXYUSERPWD, (*thePreferences)->proxyUserNameandPassword);
+		HUnlock((Handle) thePreferences);
+	}
+	
 	
 	/* For Authentication */
 	if (p->PASSFlagEncountered) {
@@ -232,7 +313,7 @@ RegisterEasyHTTP(void)
 	char* runtimeStrVarList;
 
 	// NOTE: If you change this template, you must change the easyHttpRuntimeParams structure as well.
-	cmdTemplate = "easyHTTP/auth=string/pass=string/file=string/prox=string/post=string/ftp=string string[,varname]";
+	cmdTemplate = "easyHTTP/S/auth=string/pass=string/file=string/prox=string/ppas=string/post=string/ftp=string string[,varname]";
 	runtimeNumVarList = "V_Flag";
 	runtimeStrVarList = "S_getHttp";
 	return RegisterOperation(cmdTemplate, runtimeNumVarList, runtimeStrVarList, sizeof(easyHttpRuntimeParams), (void*)ExecuteEasyHTTP, 0);
