@@ -1,5 +1,7 @@
 // Runtime param structure for GetHTTP operation.
 #include "easyHttp.h"
+#include <Carbon/Carbon.h>
+
  
   static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *stream)
   {
@@ -49,7 +51,7 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 			err = OH_EXPECTED_STRING;
 			goto done;
 		}
-		if(err = GetCStringFromHandle(p->main0StrH,url,MAX_URL_LENGTH))
+		if(err = GetCStringFromHandle(p->main0StrH, url, MAX_URL_LENGTH))
 			goto done;
  		//Specify the URL to get
 		curl_easy_setopt(curl, CURLOPT_URL, url);
@@ -268,7 +270,7 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	//if not in a file put into a string handle
 	if (!p->FILEFlagEncountered && chunk.getData()){
 		if(p->main1ParamsSet[0])
-			if(err = StoreStringDataUsingVarName(p->main1VarName,(const char*)chunk.getData(),chunk.getMemSize()))
+			if(err = StoreStringDataUsingVarName(p->main1VarName, (const char*)chunk.getData(), chunk.getMemSize()))
 				goto done;
 		char nul[1];
 		nul[0] = 0x00;
@@ -277,15 +279,15 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 		} catch (bad_alloc&){
 			err = NOMEM;
 		}
-		if(!err && (err = SetOperationStrVar("S_getHttp",(const char*)chunk.getData())))
+		if(!err && (err = SetOperationStrVar("S_getHttp", (const char*)chunk.getData())))
 			goto done;
 	}
-		
+	
 done:
 	if((err || res)){
-		 SetOperationNumVar("V_flag",1);
+		 SetOperationNumVar("V_flag", 1);
 	} else {
-		err = SetOperationNumVar("V_flag",0);
+		err = SetOperationNumVar("V_flag", 0);
 	}
 
 	if(curl){

@@ -19,8 +19,6 @@ ExecuteTHReasyHTTP(THReasyHTTPRuntimeParamsPtr p)
 	char pathNameToRead[MAX_PATH_LEN+1];
 	char userpassword[MAX_PASSLEN+1];
 	char proxyUserPassword[MAX_PASSLEN+1];
-
-	Handle hand = NULL;
 	
 	long dimensionSizes[MAX_DIMENSIONS+1]; // Array of new dimension sizes 
 	long indices[MAX_DIMENSIONS]; // Identifies the point of interest 
@@ -235,10 +233,6 @@ done:
 		value[1]=1;
 		MDSetNumericWavePointValue(p->main1WaveH,indices,value);
 	}
-	
-	
-	if(hand)
-		DisposeHandle(hand);
 
 	if(curl){
 		//always cleanup
