@@ -52,7 +52,13 @@ struct easyHttpRuntimeParams {
 	int SFlagEncountered;
 	// There are no fields for this group because it has no parameters.
 	
+	//should the XOP be quiet as it downloads?
+	int VERBFlagEncountered;
 
+	int TIMEFlagEncountered;
+	double TIMEFlagNumber;
+	int TIMEFlagParamsSet[1];
+	
 	// Parameters for /AUTH flag group.
 	int AUTHFlagEncountered;
 	Handle AUTHFlagStrH;
