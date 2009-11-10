@@ -2,6 +2,17 @@
 #include "easyHttp.h"
 #include <Carbon/Carbon.h>
 
+#ifdef _MACINTOSH_
+#include <pthread.h>
+#endif
+
+#ifdef _WINDOWS_
+#include "pthread.h"
+#include "sched.h"
+#include "semaphore.h"
+#endif
+
+bool operationFinished = false;
  
   static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *stream)
   {
@@ -11,6 +22,35 @@
     size_t retcode = fread(ptr, size, nmemb, (XOP_FILE_REF) stream);
     return retcode;
   }
+
+void *easyHttpThreadWorker(void *arg){
+	CURL *curl = (CURL *) arg;
+	int res, err=0;
+	extern bool operationFinished;
+	try{
+		res = curl_easy_perform(curl);
+	} catch (bad_alloc&){
+		err = NOMEM;
+	}
+	operationFinished = true;
+	
+	pthread_exit((void*)res);
+	return NULL;
+}
+
+int easyHttpProgress(void *clientp, double dltotal, double dlnow, double ultotal, double ulnow){
+	int err = 0;
+	char msg[401];
+	static long lastticks;
+	memset(msg, 0, 401*sizeof(char));
+	
+	snprintf(msg, 400, "progress %f\r", 100* dlnow/dltotal);
+	if(lastticks+10<TickCount())
+		XOPNotice(msg);
+	lastticks = TickCount();
+	
+	return err;
+}
  
 int
 ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
@@ -29,6 +69,8 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	XOP_FILE_REF inputFile = NULL;
 	XOP_FILE_REF outputFile = NULL;
 	char curlerror[CURL_ERROR_SIZE+1];
+	pthread_t thread = NULL;
+	extern bool operationFinished;
 	
 	MemoryStruct chunk;
 	
@@ -252,21 +294,33 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
 	
 	//follow redirects
-	curl_easy_setopt(curl,CURLOPT_FOLLOWLOCATION,1);
+	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
 	
-	/*get it*/
-	try{
-		if(res = curl_easy_perform(curl)){
-			XOPNotice("easyHTTP error: ");
-			XOPNotice(curlerror);
-			XOPNotice("\r");
-			goto done;
-		}
-	} catch (bad_alloc&){
-		err = NOMEM;
-		goto done;
+	//get progress updates
+	//this may have to disappear in the future, if it disappears from CURL
+	if(p->VERBFlagEncountered){
+		curl_easy_setopt(curl, CURLOPT_PROGRESSFUNCTION, easyHttpProgress);
+		curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0);
 	}
 	
+	//set a timeout
+	if(p->TIMEFlagEncountered)
+		if(p->TIMEFlagNumber > 0)
+			curl_easy_setopt(curl, CURLOPT_TIMEOUT, (long)p->TIMEFlagNumber);
+
+	operationFinished = false;
+	pthread_create(&thread, NULL, easyHttpThreadWorker, curl);
+
+	//wait for it to finish.
+	pthread_join(thread, (void**)&res);
+	
+	if(res){
+		XOPNotice("easyHTTP error: ");
+		XOPNotice(curlerror);
+		XOPNotice("\r");
+		goto done;
+	}
+
 	//if not in a file put into a string handle
 	if (!p->FILEFlagEncountered && chunk.getData()){
 		if(p->main1ParamsSet[0])
@@ -284,23 +338,22 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	}
 	
 done:
-	if((err || res)){
+	if((err || res))
 		 SetOperationNumVar("V_flag", 1);
-	} else {
+	else
 		err = SetOperationNumVar("V_flag", 0);
-	}
 
-	if(curl){
+	if(curl)
 		//always cleanup
 		curl_easy_cleanup(curl);
-	}
+
 	
 	if (outputFile != NULL) 
 		err = XOPCloseFile(outputFile);
 
 	if (inputFile != NULL) 
 		err = XOPCloseFile(inputFile);
-			
+	
 	/* cleanup libcurl*/
 	curl_global_cleanup();
 	
@@ -315,7 +368,7 @@ RegisterEasyHTTP(void)
 	char* runtimeStrVarList;
 
 	// NOTE: If you change this template, you must change the easyHttpRuntimeParams structure as well.
-	cmdTemplate = "easyHTTP/S/auth=string/pass=string/file=string/prox=string/ppas=string/post=string/ftp=string string[,varname]";
+	cmdTemplate = "easyHTTP/S/VERB/TIME=number/auth=string/pass=string/file=string/prox=string/ppas=string/post=string/ftp=string string[,varname]";
 	runtimeNumVarList = "V_Flag";
 	runtimeStrVarList = "S_getHttp";
 	return RegisterOperation(cmdTemplate, runtimeNumVarList, runtimeStrVarList, sizeof(easyHttpRuntimeParams), (void*)ExecuteEasyHTTP, 0);
