@@ -59,6 +59,9 @@ XOPEntry(void)
 			break;
 		case CLEANUP:
 			curl_global_cleanup();
+			#ifdef _WINDOWS_
+				pthread_win32_process_detach_np();
+			#endif
 			//save the easyHttp preferences (mainly proxy settings)
 			saveAndCleanupPreferences();
 			break;
@@ -92,6 +95,11 @@ main(IORecHandle ioRecHandle){
 	
 	//get the proxy preferences
 	initialisePreferences();
+	
+	#ifdef _WINDOWS_
+	//start up the pthread library
+	pthread_win32_process_attach_np();
+	#endif
 
 	if (result = RegisterOperations()) {
 		SetXOPResult(result);

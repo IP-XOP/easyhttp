@@ -34,6 +34,10 @@ void *easyHttpThreadWorker(void *arg){
 	}
 	operationFinished = true;
 	
+#ifdef _WINDOWS_
+	pthread_win32_thread_detach_np (void)
+#endif
+	
 	pthread_exit((void*)res);
 	return NULL;
 }
