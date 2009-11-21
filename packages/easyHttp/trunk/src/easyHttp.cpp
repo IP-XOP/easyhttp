@@ -80,8 +80,6 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	
 	if( igorVersion < 503 )
 		return REQUIRES_IGOR_500;
-
-	curl_global_init(CURL_GLOBAL_ALL);
   
 	/* init the curl session */
 	curl= curl_easy_init();
@@ -357,9 +355,6 @@ done:
 
 	if (inputFile != NULL) 
 		err = XOPCloseFile(inputFile);
-	
-	/* cleanup libcurl*/
-	curl_global_cleanup();
 	
 	return err;
 }
