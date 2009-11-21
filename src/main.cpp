@@ -23,9 +23,6 @@ static int
 RegisterOperations(void)		// Register any operations with Igor.
 {
 	int result;
-
-	//setup any globals that Curl needs.
-	result = curl_global_init(CURL_GLOBAL_ALL);
 	
 	// Register XOP1 operation.
 	if (result = RegisterEasyHTTP())
@@ -54,6 +51,9 @@ XOPEntry(void)
 	long msg = GetXOPMessage();
 	switch (msg) {
 		case INIT:
+			//setup any globals that Curl needs.
+			result = curl_global_init(CURL_GLOBAL_ALL);
+			
 			//load the easyHttp preferences (mainly proxy settings)
 			initialisePreferences();
 			break;

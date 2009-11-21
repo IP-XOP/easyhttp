@@ -34,8 +34,6 @@ ExecuteTHReasyHTTP(THReasyHTTPRuntimeParamsPtr p)
 		return REQUIRES_IGOR_500;
 	if( igorVersion >= 700)
 		return XOP_OBSOLETE;
-
-	curl_global_init(CURL_GLOBAL_ALL);
   
 	/* init the curl session */
 	curl= curl_easy_init();
@@ -254,8 +252,7 @@ done:
 		goto done;
 #endif
 	}
-	/* cleanup libcurl*/
-	curl_global_cleanup();
+
 	
 	return err;
 }
