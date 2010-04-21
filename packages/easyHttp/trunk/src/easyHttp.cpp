@@ -255,10 +255,7 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 		if(p->PFlagEncountered){
 			if(err = GetPathInfo2(p->PFlagName, pathNameToRead))
 				goto done;
-			if(err = GetLeafName(pathName, leafName))
-				goto done;
-			//concatenate leafname and pathname
-			if(err = ConcatenatePaths(pathNameToRead, leafName, pathName))
+			if(err = ConcatenatePaths(pathNameToRead, pathName, pathName))
 				goto done;
 		}
 		
@@ -288,10 +285,8 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 		if(p->PFlagEncountered){
 			if(err = GetPathInfo2(p->PFlagName, pathNameToWrite))
 				goto done;
-			if(err = GetLeafName(pathName, leafName))
-			   goto done;
 			//concatenate leafname and pathname
-			if(err = ConcatenatePaths(pathNameToWrite, leafName, pathName))
+			if(err = ConcatenatePaths(pathNameToWrite, pathName, pathName))
 			   goto done;
 		}
 			
