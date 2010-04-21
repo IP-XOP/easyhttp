@@ -68,6 +68,7 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	char pathName[MAX_PATH_LEN+1];
 	char pathNameToWrite[MAX_PATH_LEN+1];
 	char pathNameToRead[MAX_PATH_LEN+1];
+	char leafName[MAX_FILENAME_LEN+1];
 	char userpassword[MAX_PASSLEN+1];
 	char proxyUserPassword[MAX_PASSLEN+1];
 	XOP_FILE_REF inputFile = NULL;
@@ -115,6 +116,11 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	}
 
 	// Flag parameters.
+	if (p->PFlagEncountered)
+		// Parameter: p->PFlagName
+		if(err = GetPathInfo2(p->PFlagName, pathNameToWrite))
+			goto done;
+
 	
 	if (p->AUTHFlagEncountered) {
 		// Parameter: p->AUTHFlagStrH (test for NULL handle before using)
@@ -271,11 +277,20 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 			err = OH_EXPECTED_STRING;
 			goto done;
 		}
-		if(err = GetCStringFromHandle(p->FILEFlagStrH,pathName,MAX_PATH_LEN))
+		if(err = GetCStringFromHandle(p->FILEFlagStrH,pathName, MAX_PATH_LEN))
 			goto done;
-		if(err = GetNativePath(pathName,pathNameToWrite))
+		if(p->PFlagEncountered){
+			if(err = GetLeafName(pathName, leafName))
+			   goto done;
+			//concatenate leafname and pathname
+			if(err = ConcatenatePaths(pathNameToWrite, leafName, pathName))
+			   goto done;
+		}
+			
+		if(err = GetNativePath(pathName, pathNameToWrite))
 			goto done;
-		if(err = XOPOpenFile(pathNameToWrite,1,&outputFile))
+		
+		if(err = XOPOpenFile(pathNameToWrite,1 ,&outputFile))
 			goto done;
 		/* send all data to this function  */
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_filedata);
@@ -367,7 +382,7 @@ RegisterEasyHTTP(void)
 	char* runtimeStrVarList;
 
 	// NOTE: If you change this template, you must change the easyHttpRuntimeParams structure as well.
-	cmdTemplate = "easyHTTP/S/VERB/TIME=number/auth=string/pass=string/file=string/prox=string/ppas=string/post=string/ftp=string string[,varname]";
+	cmdTemplate = "easyHTTP/P=name/S/VERB/TIME=number/auth=string/pass=string/file=string/prox=string/ppas=string/post=string/ftp=string string[,varname]";
 	runtimeNumVarList = "V_Flag";
 	runtimeStrVarList = "S_getHttp";
 	return RegisterOperation(cmdTemplate, runtimeNumVarList, runtimeStrVarList, sizeof(easyHttpRuntimeParams), (void*)ExecuteEasyHTTP, 0);

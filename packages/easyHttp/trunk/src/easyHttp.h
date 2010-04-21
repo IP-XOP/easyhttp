@@ -47,6 +47,11 @@ typedef struct easyHttpPreferences **easyHttpPreferencesHandle;
 struct easyHttpRuntimeParams {
 	// Flag parameters.
 	
+	// Parameters for /P flag group.
+	int PFlagEncountered;
+	char PFlagName[MAX_OBJ_NAME+1];
+	int PFlagParamsSet[1];
+	
 	// Parameters for /S flag group.
 	// this flag signifies that you want to save the proxy settings (both URL:port and username:password) in the preferences file
 	int SFlagEncountered;
