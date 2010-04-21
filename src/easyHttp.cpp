@@ -116,11 +116,6 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	}
 
 	// Flag parameters.
-	if (p->PFlagEncountered)
-		// Parameter: p->PFlagName
-		if(err = GetPathInfo2(p->PFlagName, pathNameToWrite))
-			goto done;
-
 	
 	if (p->AUTHFlagEncountered) {
 		// Parameter: p->AUTHFlagStrH (test for NULL handle before using)
@@ -254,9 +249,20 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 			err = OH_EXPECTED_STRING;
 			goto done;
 		}
-		if(err = GetCStringFromHandle(p->FTPFlagStrH,pathName,MAX_PATH_LEN))
+		if(err = GetCStringFromHandle(p->FTPFlagStrH,pathName, MAX_PATH_LEN))
 			goto done;	
-		if(err = GetNativePath(pathName,pathNameToRead))
+		
+		if(p->PFlagEncountered){
+			if(err = GetPathInfo2(p->PFlagName, pathNameToRead))
+				goto done;
+			if(err = GetLeafName(pathName, leafName))
+				goto done;
+			//concatenate leafname and pathname
+			if(err = ConcatenatePaths(pathNameToRead, leafName, pathName))
+				goto done;
+		}
+		
+		if(err = GetNativePath(pathName, pathNameToRead))
 			goto done;
 		if(err = XOPOpenFile(pathNameToRead,0,&inputFile))
 			goto done;
@@ -280,6 +286,8 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 		if(err = GetCStringFromHandle(p->FILEFlagStrH,pathName, MAX_PATH_LEN))
 			goto done;
 		if(p->PFlagEncountered){
+			if(err = GetPathInfo2(p->PFlagName, pathNameToWrite))
+				goto done;
 			if(err = GetLeafName(pathName, leafName))
 			   goto done;
 			//concatenate leafname and pathname
