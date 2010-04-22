@@ -1,6 +1,5 @@
 // Runtime param structure for GetHTTP operation.
 #include "easyHttp.h"
-#include <Carbon/Carbon.h>
 
 #ifdef _MACINTOSH_
 #include <pthread.h>
@@ -10,6 +9,7 @@
 #include "pthread.h"
 #include "sched.h"
 #include "semaphore.h"
+#define snprintf _snprintf
 #endif
 
 bool operationFinished = false;
@@ -34,10 +34,7 @@ void *easyHttpThreadWorker(void *arg){
 	}
 	operationFinished = true;
 	
-#ifdef _WINDOWS_
-	pthread_win32_thread_detach_np (void)
-#endif
-	
+
 	pthread_exit((void*)res);
 	return NULL;
 }
@@ -74,7 +71,7 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	XOP_FILE_REF inputFile = NULL;
 	XOP_FILE_REF outputFile = NULL;
 	char curlerror[CURL_ERROR_SIZE+1];
-	pthread_t thread = NULL;
+	pthread_t thread;
 	extern bool operationFinished;
 	
 	MemoryStruct chunk;
