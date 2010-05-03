@@ -32,7 +32,7 @@ HOST_IMPORT void main(IORecHandle ioRecHandle);
 
 using namespace std;
 
-#include "XOPStructureAlignmentTwoByte.h"	// All structures passed to Igor are two-byte aligned.
+#pragma pack(2)	// All structures passed to Igor are two-byte aligned.
 struct easyHttpPreferences {				// this is a structure to save preferences for 
 	char proxyURLandPort[MAX_URL_LENGTH+1];				// Where to get input value, where to store output value.
 	char proxyUserNameandPassword[MAX_PASSLEN+1];
@@ -40,17 +40,12 @@ struct easyHttpPreferences {				// this is a structure to save preferences for
 typedef struct easyHttpPreferences easyHttpPreferences;
 typedef struct easyHttpPreferences *easyHttpPreferencesPtr;
 typedef struct easyHttpPreferences **easyHttpPreferencesHandle;
-#include "XOPStructureAlignmentReset.h"		// Reset structure alignment to default.
+#pragma pack()		// Reset structure alignment to default.
 
 
-#include "XOPStructureAlignmentTwoByte.h"	// All structures passed to Igor are two-byte aligned.
+#pragma pack(2)	// All structures passed to Igor are two-byte aligned.
 struct easyHttpRuntimeParams {
 	// Flag parameters.
-	
-	// Parameters for /P flag group.
-	int PFlagEncountered;
-	char PFlagName[MAX_OBJ_NAME+1];
-	int PFlagParamsSet[1];
 	
 	// Parameters for /S flag group.
 	// this flag signifies that you want to save the proxy settings (both URL:port and username:password) in the preferences file
@@ -117,12 +112,12 @@ struct easyHttpRuntimeParams {
 };
 typedef struct easyHttpRuntimeParams easyHttpRuntimeParams;
 typedef struct easyHttpRuntimeParams* easyHttpRuntimeParamsPtr;
-#include "XOPStructureAlignmentReset.h"		// Reset structure alignment to default.
+#pragma pack()		// Reset structure alignment to default.
 
 int ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p);
 int RegisterEasyHTTP(void);
 
-#include "XOPStructureAlignmentTwoByte.h"	// All structures passed to Igor are two-byte aligned.
+#pragma pack(2)	// All structures passed to Igor are two-byte aligned.
 struct THReasyHTTPRuntimeParams {
 	// Flag parameters.
 	
@@ -180,7 +175,7 @@ struct THReasyHTTPRuntimeParams {
 };
 typedef struct THReasyHTTPRuntimeParams THReasyHTTPRuntimeParams;
 typedef struct THReasyHTTPRuntimeParams* THReasyHTTPRuntimeParamsPtr;
-#include "XOPStructureAlignmentReset.h"		// Reset structure alignment to default.
+#pragma pack()		// Reset structure alignment to default.
 
 int ExecuteTHReasyHTTP(THReasyHTTPRuntimeParamsPtr p);
 int RegisterTHReasyHTTP(void);
