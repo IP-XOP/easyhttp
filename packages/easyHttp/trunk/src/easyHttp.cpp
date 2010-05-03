@@ -9,7 +9,6 @@
 #include "pthread.h"
 #include "sched.h"
 #include "semaphore.h"
-#define snprintf _snprintf
 #endif
 
 bool operationFinished = false;
@@ -34,7 +33,6 @@ void *easyHttpThreadWorker(void *arg){
 	}
 	operationFinished = true;
 	
-
 	pthread_exit((void*)res);
 	return NULL;
 }
@@ -65,13 +63,12 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	char pathName[MAX_PATH_LEN+1];
 	char pathNameToWrite[MAX_PATH_LEN+1];
 	char pathNameToRead[MAX_PATH_LEN+1];
-	char leafName[MAX_FILENAME_LEN+1];
 	char userpassword[MAX_PASSLEN+1];
 	char proxyUserPassword[MAX_PASSLEN+1];
 	XOP_FILE_REF inputFile = NULL;
 	XOP_FILE_REF outputFile = NULL;
 	char curlerror[CURL_ERROR_SIZE+1];
-	pthread_t thread;
+	pthread_t thread = NULL;
 	extern bool operationFinished;
 	
 	MemoryStruct chunk;
@@ -157,16 +154,12 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 				memset(*thePreferences, 0, GetHandleSize((Handle) thePreferences));
 			}
 			//now put the proxy into the preferences handle
-			MoveLockHandle((Handle) thePreferences);
 			memset((*thePreferences)->proxyURLandPort, 0, sizeof((*thePreferences)->proxyURLandPort));
 			strncpy((*thePreferences)->proxyURLandPort, url, sizeof((*thePreferences)->proxyURLandPort));
-			HUnlock((Handle) thePreferences);			
 		}
 	} else if(thePreferences && prefsState){
-		MoveLockHandle((Handle) thePreferences);
 		if(strlen((*thePreferences)->proxyURLandPort))
 			curl_easy_setopt(curl, CURLOPT_PROXY, (*thePreferences)->proxyURLandPort);
-		HUnlock((Handle) thePreferences);
 	}
 	
 	if(p->PPASFlagEncountered){
@@ -198,16 +191,12 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 			}
 			
 			//now put the proxy into the preferences handle
-			MoveLockHandle((Handle) thePreferences);
 			memset((*thePreferences)->proxyUserNameandPassword, 0, sizeof((*thePreferences)->proxyUserNameandPassword));
 			strncpy((*thePreferences)->proxyUserNameandPassword, proxyUserPassword, sizeof((*thePreferences)->proxyUserNameandPassword));
-			HUnlock((Handle) thePreferences);			
 		}
 	} else if(thePreferences && prefsState){
-		MoveLockHandle((Handle) thePreferences);
 		if(strlen((*thePreferences)->proxyUserNameandPassword))
 			curl_easy_setopt(curl, CURLOPT_PROXYUSERPWD, (*thePreferences)->proxyUserNameandPassword);
-		HUnlock((Handle) thePreferences);
 	}
 	
 	
@@ -246,17 +235,9 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 			err = OH_EXPECTED_STRING;
 			goto done;
 		}
-		if(err = GetCStringFromHandle(p->FTPFlagStrH,pathName, MAX_PATH_LEN))
+		if(err = GetCStringFromHandle(p->FTPFlagStrH,pathName,MAX_PATH_LEN))
 			goto done;	
-		
-		if(p->PFlagEncountered){
-			if(err = GetPathInfo2(p->PFlagName, pathNameToRead))
-				goto done;
-			if(err = ConcatenatePaths(pathNameToRead, pathName, pathName))
-				goto done;
-		}
-		
-		if(err = GetNativePath(pathName, pathNameToRead))
+		if(err = GetNativePath(pathName,pathNameToRead))
 			goto done;
 		if(err = XOPOpenFile(pathNameToRead,0,&inputFile))
 			goto done;
@@ -277,20 +258,11 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 			err = OH_EXPECTED_STRING;
 			goto done;
 		}
-		if(err = GetCStringFromHandle(p->FILEFlagStrH,pathName, MAX_PATH_LEN))
+		if(err = GetCStringFromHandle(p->FILEFlagStrH,pathName,MAX_PATH_LEN))
 			goto done;
-		if(p->PFlagEncountered){
-			if(err = GetPathInfo2(p->PFlagName, pathNameToWrite))
-				goto done;
-			//concatenate leafname and pathname
-			if(err = ConcatenatePaths(pathNameToWrite, pathName, pathName))
-			   goto done;
-		}
-			
-		if(err = GetNativePath(pathName, pathNameToWrite))
+		if(err = GetNativePath(pathName,pathNameToWrite))
 			goto done;
-		
-		if(err = XOPOpenFile(pathNameToWrite,1 ,&outputFile))
+		if(err = XOPOpenFile(pathNameToWrite,1,&outputFile))
 			goto done;
 		/* send all data to this function  */
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_filedata);
@@ -382,7 +354,7 @@ RegisterEasyHTTP(void)
 	char* runtimeStrVarList;
 
 	// NOTE: If you change this template, you must change the easyHttpRuntimeParams structure as well.
-	cmdTemplate = "easyHTTP/P=name/S/VERB/TIME=number/auth=string/pass=string/file=string/prox=string/ppas=string/post=string/ftp=string string[,varname]";
+	cmdTemplate = "easyHTTP/S/VERB/TIME=number/auth=string/pass=string/file=string/prox=string/ppas=string/post=string/ftp=string string[,varname]";
 	runtimeNumVarList = "V_Flag";
 	runtimeStrVarList = "S_getHttp";
 	return RegisterOperation(cmdTemplate, runtimeNumVarList, runtimeStrVarList, sizeof(easyHttpRuntimeParams), (void*)ExecuteEasyHTTP, 0);
