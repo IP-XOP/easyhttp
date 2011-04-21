@@ -70,6 +70,7 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	char curlerror[CURL_ERROR_SIZE+1];
 	pthread_t thread = NULL;
 	extern bool operationFinished;
+	char *postString = NULL;
 	
 	MemoryStruct chunk;
 	
@@ -81,7 +82,7 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	if( !curl)
 		goto done;
 	
-	curl_easy_setopt(curl,CURLOPT_ERRORBUFFER,curlerror);
+	curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, curlerror);
 	
 	/* The URL of interest */
 	if (p->main0Encountered) {
@@ -218,16 +219,9 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 		if (p->POSTFlagStrH == NULL) {
 			err = OH_EXPECTED_STRING;
 			goto done;
-		}
-		if(err = GetCStringFromHandle(p->POSTFlagStrH,pathName,MAX_PATH_LEN))
-			goto done;	
-		if(err = GetNativePath(pathName,pathNameToRead))
-			goto done;
-		if(err = XOPOpenFile(pathNameToRead,0,&inputFile))
-			goto done;
-		 
-		curl_easy_setopt(curl, CURLOPT_READDATA,inputFile);
-		curl_easy_setopt(curl, CURLOPT_POST,1L);
+		}		
+		postString = curl_easy_escape(curl, *(p->POSTFlagStrH), GetHandleSize(p->POSTFlagStrH));
+		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postString);
 	}	
 		
 	if(p->FTPFlagEncountered){
@@ -235,7 +229,7 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 			err = OH_EXPECTED_STRING;
 			goto done;
 		}
-		if(err = GetCStringFromHandle(p->FTPFlagStrH,pathName,MAX_PATH_LEN))
+		if(err = GetCStringFromHandle(p->FTPFlagStrH,pathName, MAX_PATH_LEN))
 			goto done;	
 		if(err = GetNativePath(pathName,pathNameToRead))
 			goto done;
@@ -332,11 +326,13 @@ done:
 	else
 		err = SetOperationNumVar("V_flag", 0);
 
+	if(postString)
+		curl_free(postString);
+
 	if(curl)
 		//always cleanup
 		curl_easy_cleanup(curl);
 
-	
 	if (outputFile != NULL) 
 		err = XOPCloseFile(outputFile);
 
