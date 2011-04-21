@@ -222,6 +222,10 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 		}		
 		postString = curl_easy_escape(curl, *(p->POSTFlagStrH), GetHandleSize(p->POSTFlagStrH));
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postString);
+		if(!postString){
+			err = NOMEM;
+			goto done;
+		}
 	}	
 		
 	if(p->FTPFlagEncountered){
