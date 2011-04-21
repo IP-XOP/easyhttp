@@ -9,6 +9,7 @@
 #include "pthread.h"
 #include "sched.h"
 #include "semaphore.h"
+#define snprintf sprintf_s
 #endif
 
 bool operationFinished = false;
@@ -68,7 +69,7 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	XOP_FILE_REF inputFile = NULL;
 	XOP_FILE_REF outputFile = NULL;
 	char curlerror[CURL_ERROR_SIZE+1];
-	pthread_t thread = NULL;
+	pthread_t thread;
 	extern bool operationFinished;
 	char *postString = NULL;
 	
