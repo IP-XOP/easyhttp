@@ -302,12 +302,8 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	//wait for it to finish.
 	pthread_join(thread, (void**)&res);
 	
-	if(res){
-		XOPNotice("easyHTTP error: ");
-		XOPNotice(curlerror);
-		XOPNotice("\r");
+	if(res)
 		goto done;
-	}
 
 	//if not in a file put into a string handle
 	if (!p->FILEFlagEncountered && chunk.getData()){
@@ -326,11 +322,13 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	}
 	
 done:
-	if((err || res))
+	if((err || res)){
 		 SetOperationNumVar("V_flag", 1);
-	else
-		err = SetOperationNumVar("V_flag", 0);
-
+		 SetOperationStrVar("S_value", curlerror);	
+	} else {
+		err = SetOperationStrVar("V_flag", 0);
+		err = SetOperationStrVar("S_Value", "");
+	}
 	if(postString)
 		curl_free(postString);
 
@@ -357,6 +355,6 @@ RegisterEasyHTTP(void)
 	// NOTE: If you change this template, you must change the easyHttpRuntimeParams structure as well.
 	cmdTemplate = "easyHTTP/S/VERB/TIME=number/auth=string/pass=string/file=string/prox=string/ppas=string/post=string/ftp=string string[,varname]";
 	runtimeNumVarList = "V_Flag";
-	runtimeStrVarList = "S_getHttp";
+	runtimeStrVarList = "S_getHttp;S_error";
 	return RegisterOperation(cmdTemplate, runtimeNumVarList, runtimeStrVarList, sizeof(easyHttpRuntimeParams), (void*)ExecuteEasyHTTP, 0);
 }
