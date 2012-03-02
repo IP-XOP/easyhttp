@@ -1,20 +1,7 @@
 // Runtime param structure for GetHTTP operation.
 #include "easyHttp.h"
-
-#ifdef _MACINTOSH_
-#include <pthread.h>
-#endif
-
-#ifdef _WINDOWS_
-#include "pthread.h"
-#include "sched.h"
-#include "semaphore.h"
-#define snprintf sprintf_s
-#endif
-
-bool operationFinished = false;
  
-  static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *stream)
+static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *stream)
   {
     /* in real-world cases, this would probably get this data differently
        as this fread() stuff is exactly what the library already would do
@@ -23,34 +10,6 @@ bool operationFinished = false;
     return retcode;
   }
 
-void *easyHttpThreadWorker(void *arg){
-	CURL *curl = (CURL *) arg;
-	int res, err=0;
-	extern bool operationFinished;
-	try{
-		res = curl_easy_perform(curl);
-	} catch (bad_alloc&){
-		err = NOMEM;
-	}
-	operationFinished = true;
-	
-	pthread_exit((void*)res);
-	return NULL;
-}
-
-int easyHttpProgress(void *clientp, double dltotal, double dlnow, double ultotal, double ulnow){
-	int err = 0;
-	char msg[401];
-	static long lastticks;
-	memset(msg, 0, 401*sizeof(char));
-	
-	snprintf(msg, 400, "progress %f\r", 100* dlnow/dltotal);
-	if(lastticks+10<TickCount())
-		XOPNotice(msg);
-	lastticks = TickCount();
-	
-	return err;
-}
  
 int
 ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
@@ -59,25 +18,26 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	CURL *curl = NULL;
 	CURLcode res;
 	extern easyHttpPreferencesHandle thePreferences;
-	long prefsState;
-   	char url[MAX_URL_LENGTH+1];
-	char pathName[MAX_PATH_LEN+1];
-	char pathNameToWrite[MAX_PATH_LEN+1];
-	char pathNameToRead[MAX_PATH_LEN+1];
-	char userpassword[MAX_PASSLEN+1];
-	char proxyUserPassword[MAX_PASSLEN+1];
+	int prefsState = 0;
+   	char url[MAX_URL_LENGTH + 1];
+	char pathName[MAX_PATH_LEN + 1];
+	char pathNameToWrite[MAX_PATH_LEN + 1];
+	char pathNameToRead[MAX_PATH_LEN + 1];
+	char userpassword[MAX_PASSLEN + 1];
+	char proxyUserPassword[MAX_PASSLEN + 1];
 	XOP_FILE_REF inputFile = NULL;
 	XOP_FILE_REF outputFile = NULL;
-	char curlerror[CURL_ERROR_SIZE+1];
-	pthread_t thread;
-	extern bool operationFinished;
+	char curlerror[CURL_ERROR_SIZE + 1];
 	char *postString = NULL;
 	
 	MemoryStruct chunk;
 	
-	if( igorVersion < 503 )
-		return REQUIRES_IGOR_500;
+	if( igorVersion < 600 )
+		return REQUIRES_IGOR_600;
   
+	if( igorVersion < 620 && !RunningInMainThread())
+		return NOT_IN_THREADSAFE;
+
 	/* init the curl session */
 	curl= curl_easy_init();
 	if( !curl)
@@ -125,8 +85,9 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	1) see if there is a proxy specified, command line always gets preference.
 	2) if there isn't then see if the IGOR preferences have one
 	*/
-	if(err = GetPrefsState(&prefsState))
-		goto done;
+	if(RunningInMainThread())
+		if(err = GetPrefsState(&prefsState))
+			goto done;
 	
 	if(p->PROXFlagEncountered){
 		if (p->PROXFlagStrH == NULL) {
@@ -138,7 +99,8 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 		curl_easy_setopt(curl, CURLOPT_PROXY, url);
 
 		//you want to save the proxy in the IGOR preferences file
-		if(p->SFlagEncountered){
+		//you can only do this if running in the main thread.
+		if(p->SFlagEncountered && RunningInMainThread()){
 			//if the preferences handle doesn't exist we have to create it.
 			if(!thePreferences){
 				thePreferences = (easyHttpPreferencesHandle) NewHandle(sizeof(easyHttpPreferences));
@@ -174,7 +136,7 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 		curl_easy_setopt(curl, CURLOPT_PROXYUSERPWD, proxyUserPassword);
 		
 		//you want to save the proxy in the IGOR preferences file
-		if(p->SFlagEncountered){
+		if(p->SFlagEncountered && RunningInMainThread()){
 			//if the preferences handle doesn't exist we have to create it.
 			if(!thePreferences){
 				thePreferences = (easyHttpPreferencesHandle) NewHandle(sizeof(easyHttpPreferences));
@@ -209,11 +171,11 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 			err = OH_EXPECTED_STRING;
 			goto done;
 		}
-		if(err = GetCStringFromHandle(p->PASSFlagStrH,userpassword,MAX_PASSLEN))
+		if(err = GetCStringFromHandle(p->PASSFlagStrH, userpassword, MAX_PASSLEN))
 			goto done;
 		//set a user name and password for authentication
-		curl_easy_setopt(curl,CURLOPT_USERPWD,userpassword);
-		curl_easy_setopt(curl,CURLOPT_HTTPAUTH,CURLAUTH_ANY);
+		curl_easy_setopt(curl, CURLOPT_USERPWD, userpassword);
+		curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
 	}
 	
 	if(p->POSTFlagEncountered){
@@ -284,23 +246,17 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	//follow redirects
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
 	
-	//get progress updates
-	//this may have to disappear in the future, if it disappears from CURL
-	if(p->VERBFlagEncountered){
-		curl_easy_setopt(curl, CURLOPT_PROGRESSFUNCTION, easyHttpProgress);
-		curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0);
-	}
 	
 	//set a timeout
 	if(p->TIMEFlagEncountered)
 		if(p->TIMEFlagNumber > 0)
 			curl_easy_setopt(curl, CURLOPT_TIMEOUT, (long)p->TIMEFlagNumber);
 
-	operationFinished = false;
-	pthread_create(&thread, NULL, easyHttpThreadWorker, curl);
-
-	//wait for it to finish.
-	pthread_join(thread, (void**)&res);
+	try{
+		res = curl_easy_perform(curl);
+	} catch (bad_alloc&){
+		err = NOMEM;
+	}
 	
 	if(res)
 		goto done;
@@ -310,15 +266,10 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 		if(p->main1ParamsSet[0])
 			if(err = StoreStringDataUsingVarName(p->main1VarName, (const char*)chunk.getData(), chunk.getMemSize()))
 				goto done;
-		char nul[1];
-		nul[0] = 0x00;
-		try{
-			chunk.WriteMemoryCallback(&nul, sizeof(char), 1);
-		} catch (bad_alloc&){
-			err = NOMEM;
-		}
-		if(!err && (err = SetOperationStrVar("S_getHttp", (const char*)chunk.getData())))
+		
+		if(!err && (err = SetOperationStrVar2("S_getHttp", (const char*)chunk.getData(), chunk.getMemSize())))
 			goto done;
+
 	}
 	
 done:
@@ -356,5 +307,5 @@ RegisterEasyHTTP(void)
 	cmdTemplate = "easyHTTP/S/VERB/TIME=number/auth=string/pass=string/file=string/prox=string/ppas=string/post=string/ftp=string string[,varname]";
 	runtimeNumVarList = "V_Flag";
 	runtimeStrVarList = "S_getHttp;S_error";
-	return RegisterOperation(cmdTemplate, runtimeNumVarList, runtimeStrVarList, sizeof(easyHttpRuntimeParams), (void*)ExecuteEasyHTTP, 0);
+	return RegisterOperation(cmdTemplate, runtimeNumVarList, runtimeStrVarList, sizeof(easyHttpRuntimeParams), (void*)ExecuteEasyHTTP, kOperationIsThreadSafe);
 }

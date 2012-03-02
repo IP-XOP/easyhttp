@@ -19,7 +19,7 @@ static void saveAndCleanupPreferences(){
 	}
 }
 
-static int
+extern "C" int
 RegisterOperations(void)		// Register any operations with Igor.
 {
 	int result;
@@ -27,13 +27,7 @@ RegisterOperations(void)		// Register any operations with Igor.
 	// Register XOP1 operation.
 	if (result = RegisterEasyHTTP())
 		return result;
-	
-	//register threadsafe version as well, only if your IGOR version is good enough
-	if ((igorVersion > 602) && (igorVersion <= 700)){ 
-		if(result = RegisterTHReasyHTTP())
-			return result;
-	} 
-	
+		
 	// There are no more operations added by this XOP.
 	
 	return 0;
@@ -44,10 +38,10 @@ RegisterOperations(void)		// Register any operations with Igor.
 This is the entry point from the host application to the XOP for all
 messages after the INIT message.
 */
-static void
+extern "C" void
 XOPEntry(void)
 {	
-	long result = 0;
+	XOPIORecResult result = 0;
 	long msg = GetXOPMessage();
 	switch (msg) {
 		case INIT:
@@ -77,14 +71,8 @@ The message sent by the host must be INIT.
 main does any necessary initialization and then sets the XOPEntry field of the
 ioRecHandle to the address to be called for future messages.
 */
-#ifdef _MACINTOSH_
-HOST_IMPORT int main(IORecHandle ioRecHandle){
-#endif
-#ifdef _WINDOWS_
-HOST_IMPORT void
-main(IORecHandle ioRecHandle){
-#endif
 
+HOST_IMPORT int main(IORecHandle ioRecHandle){
 	int result;
 	
 	XOPInit(ioRecHandle);							// Do standard XOP initialization.
@@ -96,13 +84,9 @@ main(IORecHandle ioRecHandle){
 	
 	if (result = RegisterOperations()) {
 		SetXOPResult(result);
-#ifdef _MACINTOSH_
-		return 0;
-#endif
+		return EXIT_FAILURE;
 	}
 	
 	SetXOPResult(0);
-#ifdef _MACINTOSH_
-		return 0;
-#endif
+	return EXIT_SUCCESS;
 }

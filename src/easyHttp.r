@@ -3,19 +3,19 @@
 resource 'vers' (1) {						/* XOP version info */
 	0x01, 0x00, final, 0x00, 0,				/* version bytes and country integer */
 	"1.00",
-	"1.00, © 1993 WaveMetrics, Inc., all rights reserved."
+	"1.00, ï¿½ 1993 WaveMetrics, Inc., all rights reserved."
 };
 
 resource 'vers' (2) {						/* Igor version info */
-	0x05, 0x04, release, 0x00, 0,			/* version bytes and country integer */
-	"5.04",
-	"(for Igor Pro 5.04 or later)"
+	0x06, 0x05, release, 0x00, 0,			/* version bytes and country integer */
+	"6.04",
+	"(for Igor Pro 6.04 or later)"
 };
 
 resource 'STR#' (1100) {					/* custom error messages */
 	{
 		/* [1] */
-		"easyhttp requires Igor Pro 5.0 or later.",
+		"easyhttp requires Igor Pro 6.0 or later.",
 		/* [2] */
 		"error with POST string key:value; pairs.",
 		/* [3] */
@@ -47,8 +47,6 @@ resource 'STR#' (1101) {					// Misc strings for XOP.
 resource 'XOPC' (1100) {
 	{
 		"easyHttp",								// Name of operation.
-		XOPOp+UtilOP+compilableOp,			// Operation's category.
-		"THReasyHttp",
-		XOPOp+UtilOP+compilableOp+threadSafeOp,
+		XOPOp+UtilOP+compilableOp+threadSafeOp,			// Operation's category.
 	}
 };
