@@ -9,7 +9,7 @@ easyHttp.c -- An XOP for curvefitting via Differential Evolution.
 1100 STR#							// Custom error messages.
 BEGIN
     //[1]
-	"easyHttp requires Igor Pro 5.03 or later.\0",
+	"easyHttp requires Igor Pro 6 or later.\0",
 	/* [2] */
 	"error with POST string key:value; pairs.\0",
 	/* [3] */
@@ -42,8 +42,6 @@ END
 1100 XOPC							// Describes operations that the XOP adds to IGOR.
 BEGIN
 	"easyHttp\0",
-	utilOp | XOPOp | compilableOp,
-	"THReasyHttp\0",
 	utilOp | XOPOp | compilableOp | threadSafeOp,
 	"\0"							// NOTE: NULL required to terminate the resource.
 END
