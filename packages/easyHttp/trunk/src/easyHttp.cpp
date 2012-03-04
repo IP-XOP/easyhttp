@@ -202,7 +202,7 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 			goto done;
 		if(err = XOPOpenFile(pathNameToRead,0,&inputFile))
 			goto done;
-		unsigned long numBytes = 0;
+		size_t numBytes = 0;
 		if(err = XOPNumberOfBytesInFile(inputFile, &numBytes))
 			goto done;
 
@@ -219,11 +219,11 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 			err = OH_EXPECTED_STRING;
 			goto done;
 		}
-		if(err = GetCStringFromHandle(p->FILEFlagStrH,pathName,MAX_PATH_LEN))
+		if(err = GetCStringFromHandle(p->FILEFlagStrH, pathName, MAX_PATH_LEN))
 			goto done;
-		if(err = GetNativePath(pathName,pathNameToWrite))
+		if(err = GetNativePath(pathName, pathNameToWrite))
 			goto done;
-		if(err = XOPOpenFile(pathNameToWrite,1,&outputFile))
+		if(err = XOPOpenFile(pathNameToWrite, 1, &outputFile))
 			goto done;
 		/* send all data to this function  */
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_filedata);
