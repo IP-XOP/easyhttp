@@ -202,7 +202,7 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 			goto done;
 		if(err = XOPOpenFile(pathNameToRead,0,&inputFile))
 			goto done;
-		size_t numBytes = 0;
+		UInt32 numBytes = 0;
 		if(err = XOPNumberOfBytesInFile(inputFile, &numBytes))
 			goto done;
 
