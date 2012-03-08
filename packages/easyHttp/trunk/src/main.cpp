@@ -42,7 +42,7 @@ extern "C" void
 XOPEntry(void)
 {	
 	XOPIORecResult result = 0;
-	long msg = GetXOPMessage();
+	int msg = GetXOPMessage();
 	switch (msg) {
 		case INIT:
 			//setup any globals that Curl needs.
