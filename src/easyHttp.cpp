@@ -279,10 +279,8 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 		if(p->main1ParamsSet[0])
 			if(err = StoreStringDataUsingVarName(p->main1VarName, (const char*)chunk.getData(), chunk.getMemSize()))
 				goto done;
-		
-		if(!err && (err = SetOperationStrVar2("S_getHttp", (const char*)chunk.getData(), chunk.getMemSize())))
+		else if (!err && (err = SetOperationStrVar2("S_getHttp", (const char*)chunk.getData(), chunk.getMemSize())))
 			goto done;
-
 	}
 	
 done:
