@@ -10,7 +10,20 @@ static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *stream)
     return retcode;
   }
 
- 
+static size_t WriteMemoryCallbackWithHandle(void *ptr, size_t size, size_t nmemb, void *Data)
+{
+    size_t realsize = size * nmemb;
+    Handle *HandPtr = (Handle *)Data;
+
+	if(PtrAndHand(ptr, *HandPtr, realsize))
+		return -1;
+	else
+		return realsize;
+
+}
+
+
+
 int
 ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 {
@@ -183,7 +196,7 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 			err = OH_EXPECTED_STRING;
 			goto done;
 		}		
-		postString = curl_easy_escape(curl, *(p->POSTFlagStrH), GetHandleSize(p->POSTFlagStrH));
+		postString = curl_easy_escape(curl, *(p->POSTFlagStrH), (int) GetHandleSize(p->POSTFlagStrH));
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postString);
 		if(!postString){
 			err = NOMEM;
