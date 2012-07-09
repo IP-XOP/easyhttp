@@ -32,7 +32,6 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	CURLcode res;
 	extern easyHttpPreferencesHandle thePreferences;
 	int prefsState = 0;
-   	char url[MAX_URL_LENGTH + 1];
 	char pathName[MAX_PATH_LEN + 1];
 	char pathNameToWrite[MAX_PATH_LEN + 1];
 	char pathNameToRead[MAX_PATH_LEN + 1];
@@ -41,7 +40,8 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	XOP_FILE_REF inputFile = NULL;
 	XOP_FILE_REF outputFile = NULL;
 	char curlerror[CURL_ERROR_SIZE + 1];
-	char *postString = NULL;
+   	string url;
+	string postString;
 	
 	MemoryStruct chunk;
 	
@@ -65,10 +65,9 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 			err = OH_EXPECTED_STRING;
 			goto done;
 		}
-		if(err = GetCStringFromHandle(p->main0StrH, url, MAX_URL_LENGTH))
-			goto done;
+		url.assign(*(p->main0StrH), GetHandleSize(p->main0StrH));
  		//Specify the URL to get
-		curl_easy_setopt(curl, CURLOPT_URL, url);
+		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 	}
 
 	if (p->main1Encountered) {
@@ -107,9 +106,8 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 			err = OH_EXPECTED_STRING;
 			goto done;
 		}
-		if(err = GetCStringFromHandle(p->PROXFlagStrH, url, MAX_URL_LENGTH))
-			goto done;
-		curl_easy_setopt(curl, CURLOPT_PROXY, url);
+		url.assign(*(p->PROXFlagStrH), GetHandleSize(p->PROXFlagStrH));
+		curl_easy_setopt(curl, CURLOPT_PROXY, url.c_str());
 
 		//you want to save the proxy in the IGOR preferences file
 		//you can only do this if running in the main thread.
@@ -132,7 +130,7 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 			}
 			//now put the proxy into the preferences handle
 			memset((*thePreferences)->proxyURLandPort, 0, sizeof((*thePreferences)->proxyURLandPort));
-			strncpy((*thePreferences)->proxyURLandPort, url, sizeof((*thePreferences)->proxyURLandPort));
+			strncpy((*thePreferences)->proxyURLandPort, url.c_str(), sizeof((*thePreferences)->proxyURLandPort));
 		}
 	} else if(thePreferences && prefsState){
 		if(strlen((*thePreferences)->proxyURLandPort))
@@ -195,13 +193,9 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 		if (p->POSTFlagStrH == NULL) {
 			err = OH_EXPECTED_STRING;
 			goto done;
-		}		
-		postString = curl_easy_escape(curl, *(p->POSTFlagStrH), (int) GetHandleSize(p->POSTFlagStrH));
-		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postString);
-		if(!postString){
-			err = NOMEM;
-			goto done;
 		}
+		postString.assign(*(p->POSTFlagStrH), (int) GetHandleSize(p->POSTFlagStrH));
+		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postString.c_str());
 	}	
 		
 	if(p->FTPFlagEncountered){
@@ -276,10 +270,10 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 
 	//if not in a file put into a string handle
 	if (!p->FILEFlagEncountered && chunk.getData()){
-		if(p->main1ParamsSet[0])
+		if(p->main1ParamsSet[0]){
 			if(err = StoreStringDataUsingVarName(p->main1VarName, (const char*)chunk.getData(), chunk.getMemSize()))
 				goto done;
-		else if (!err && (err = SetOperationStrVar2("S_getHttp", (const char*)chunk.getData(), chunk.getMemSize())))
+		}else if (!err && (err = SetOperationStrVar2("S_getHttp", (const char*)chunk.getData(), chunk.getMemSize())))
 			goto done;
 	}
 	
@@ -291,8 +285,6 @@ done:
 		err = SetOperationStrVar("V_flag", 0);
 		err = SetOperationStrVar("S_Value", "");
 	}
-	if(postString)
-		curl_free(postString);
 
 	if(curl)
 		//always cleanup
