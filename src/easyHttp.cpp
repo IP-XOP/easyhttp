@@ -282,7 +282,7 @@ done:
 		 SetOperationNumVar("V_flag", 1);
 		 SetOperationStrVar("S_value", curlerror);	
 	} else {
-		err = SetOperationStrVar("V_flag", 0);
+		err = SetOperationNumVar("V_flag", 0);
 		err = SetOperationStrVar("S_Value", "");
 	}
 
