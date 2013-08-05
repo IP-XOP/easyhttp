@@ -57,6 +57,12 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 		goto done;
 	
 	curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, curlerror);
+    
+    //if you are in a multithread environment getting signals can really screw things up.
+    //http://curl.haxx.se/mail/lib-2013-05/0108.html
+    //
+    curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1)
+    
 	
 	/* The URL of interest */
 	if (p->main0Encountered) {
