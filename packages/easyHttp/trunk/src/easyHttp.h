@@ -13,9 +13,6 @@
 /* Prototypes */
 HOST_IMPORT int main(IORecHandle ioRecHandle);
 
-
-using namespace std;
-
 #pragma pack(2)	// All structures passed to Igor are two-byte aligned.
 struct easyHttpPreferences {				// this is a structure to save preferences for 
 	char proxyURLandPort[MAX_URL_LENGTH + 1];				// Where to get input value, where to store output value.

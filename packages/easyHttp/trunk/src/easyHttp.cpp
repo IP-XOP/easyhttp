@@ -11,6 +11,12 @@
 #include <curl/types.h>
 #include <curl/easy.h>
 
+#ifdef MACIGOR
+#include "proxy.h"
+#endif
+
+using namespace std;
+
 void licence(string &);
 
 static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *stream)
@@ -357,4 +363,23 @@ RegisterEasyHTTP(void)
 
 void licence(string &data){
     data.assign("easyHttp uses: libcurl, libssh2, libproxy, libz, openssl. Please see the COPYING.txt file from: http://www.igorexchange.com/project/easyHttp");
+    
+#ifdef MACIGOR
+    // Get a reference to the main bundle
+    CFBundleRef mainBundle = CFBundleGetMainBundle();
+    
+    // Get a reference to the licence URL
+    CFURLRef licenceURL = CFBundleCopyResourceURL(mainBundle, CFSTR("COPYING.txt"), NULL, NULL);
+        
+    // Convert the URL reference into a string reference
+    CFStringRef licencePath = CFURLCopyFileSystemPath(licenceURL, kCFURLPOSIXPathStyle);
+    
+    // Get the system encoding method
+    CFStringEncoding encodingMethod = CFStringGetSystemEncoding();
+    
+    // Convert the string reference into a C string
+    const char *path = CFStringGetCStringPtr(licencePath, encodingMethod);
+    
+    //open, read and fillout data.
+#endif
 }
