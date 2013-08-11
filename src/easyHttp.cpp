@@ -1,6 +1,7 @@
 // Runtime param structure for GetHTTP operation.
 #include "easyHttp.h"
- 
+#include <string>
+
 static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *stream)
   {
     /* in real-world cases, this would probably get this data differently
@@ -10,16 +11,14 @@ static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *stream)
     return retcode;
   }
 
-static size_t WriteMemoryCallbackWithHandle(void *ptr, size_t size, size_t nmemb, void *Data)
+static size_t
+WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
-    size_t realsize = size * nmemb;
-    Handle *HandPtr = (Handle *)Data;
-
-	if(PtrAndHand(ptr, *HandPtr, realsize))
-		return -1;
-	else
-		return realsize;
-
+    string *chunk = (string *) userp;
+    
+    chunk->assign((const char *) contents, size * nmemb);
+    
+    return chunk->size();
 }
 
 
@@ -43,7 +42,7 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
    	string url;
 	string postString;
 	
-	MemoryStruct chunk;
+	string chunk;
 	
 	if( igorVersion < 600 )
 		return REQUIRES_IGOR_600;
@@ -61,7 +60,7 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
     //if you are in a multithread environment getting signals can really screw things up.
     //http://curl.haxx.se/mail/lib-2013-05/0108.html
     //
-    curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1)
+    curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1);
     
 	
 	/* The URL of interest */
@@ -108,7 +107,7 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 			goto done;
 	
 	if(p->PROXFlagEncountered){
-		if (p->PROXFlagStrH == NULL) {
+        if(p->PROXFlagParamsSet[0] && p->PROXFlagStrH == NULL) {
 			err = OH_EXPECTED_STRING;
 			goto done;
 		}
@@ -245,9 +244,7 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 		 
 	} else {
 		/*send all data to this function*/
-		size_t (*writeBack)(void*, size_t, size_t,void*) = (MemoryStruct::WriteMemoryCallback);
-		
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeBack);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
 		/* we pass our 'chunk' struct to the callback function */
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
 	}
@@ -275,11 +272,11 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 		goto done;
 
 	//if not in a file put into a string handle
-	if (!p->FILEFlagEncountered && chunk.getData()){
+	if (!p->FILEFlagEncountered && chunk.size()){
 		if(p->main1ParamsSet[0]){
-			if(err = StoreStringDataUsingVarName(p->main1VarName, (const char*)chunk.getData(), chunk.getMemSize()))
+			if(err = StoreStringDataUsingVarName(p->main1VarName, (const char*)chunk.data(), chunk.size()))
 				goto done;
-		}else if (!err && (err = SetOperationStrVar2("S_getHttp", (const char*)chunk.getData(), chunk.getMemSize())))
+		}else if (!err && (err = SetOperationStrVar2("S_getHttp", (const char*)chunk.data(), chunk.size())))
 			goto done;
 	}
 	
@@ -313,7 +310,7 @@ RegisterEasyHTTP(void)
 	char* runtimeStrVarList;
 
 	// NOTE: If you change this template, you must change the easyHttpRuntimeParams structure as well.
-	cmdTemplate = "easyHTTP/S/VERB/TIME=number/auth=string/pass=string/file=string/prox=string/ppas=string/post=string/ftp=string string[,varname]";
+	cmdTemplate = "easyHTTP/S/VERB/TIME=number/auth=string/pass=string/file=string/prox=[string]/ppas=string/post=string/ftp=string string[,varname]";
 	runtimeNumVarList = "V_Flag";
 	runtimeStrVarList = "S_getHttp;S_error";
 	return RegisterOperation(cmdTemplate, runtimeNumVarList, runtimeStrVarList, sizeof(easyHttpRuntimeParams), (void*)ExecuteEasyHTTP, kOperationIsThreadSafe);

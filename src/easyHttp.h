@@ -10,8 +10,6 @@
 #include <curl/types.h>
 #include <curl/easy.h>
 
-#include "memutils.h"
-
 #define MAX_URL_LENGTH 2048
 #define MAX_PASSLEN 200
 
