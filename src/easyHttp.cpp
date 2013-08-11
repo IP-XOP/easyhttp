@@ -1,6 +1,17 @@
 // Runtime param structure for GetHTTP operation.
 #include "easyHttp.h"
 #include <string>
+#include <sstream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <vector>
+#include <algorithm>
+
+#include <curl/curl.h>
+#include <curl/types.h>
+#include <curl/easy.h>
+
+void licence(string &);
 
 static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *stream)
   {
@@ -22,26 +33,28 @@ WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
 }
 
 
-
 int
 ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 {
 	int err = 0;
 	CURL *curl = NULL;
-	CURLcode res;
+	CURLcode res = CURLE_OK;
 	extern easyHttpPreferencesHandle thePreferences;
 	int prefsState = 0;
 	char pathName[MAX_PATH_LEN + 1];
 	char pathNameToWrite[MAX_PATH_LEN + 1];
 	char pathNameToRead[MAX_PATH_LEN + 1];
-	char userpassword[MAX_PASSLEN + 1];
-	char proxyUserPassword[MAX_PASSLEN + 1];
 	XOP_FILE_REF inputFile = NULL;
 	XOP_FILE_REF outputFile = NULL;
 	char curlerror[CURL_ERROR_SIZE + 1];
+
    	string url;
+    string proxyurl;
+    string userpassword;
+	string proxyUserPassword;
 	string postString;
-	
+    curl_version_info_data *curl_data;
+    std::stringstream oss;
 	string chunk;
 	
 	if( igorVersion < 600 )
@@ -55,14 +68,6 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	if( !curl)
 		goto done;
 	
-	curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, curlerror);
-    
-    //if you are in a multithread environment getting signals can really screw things up.
-    //http://curl.haxx.se/mail/lib-2013-05/0108.html
-    //
-    curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1);
-    
-	
 	/* The URL of interest */
 	if (p->main0Encountered) {
 		// Parameter: p->urlStrH (test for NULL handle before using)
@@ -75,6 +80,31 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 	}
 
+    /*
+     If the URL is 'curl_version_info', then return what this version of curl can do
+     you can jump directly to the end if this is all you need.
+    */
+    if(url == "curl_version_info"){
+        curl_data = curl_version_info(CURLVERSION_NOW);
+        oss << "version:" << curl_data->version << ";";
+        oss << "host:" << curl_data->host << ";";
+        oss << "features:" << curl_data->features << ";";
+        oss << "ssl_version:" << curl_data->ssl_version << ";";
+        oss << "libz_version:" << curl_data->libz_version << ";";
+        oss << "PROTOCOLS:";
+        for(int i = 0 ; curl_data->protocols[i] ; i++)
+            oss << curl_data->protocols[i] << ",";
+        oss << ";";
+        oss << "libssh2_version:" << curl_data->libssh_version << ";";
+        
+        chunk.assign(oss.str());
+        goto done;
+    }
+    if(url == "licence"){
+        licence(chunk);
+        goto done;
+    }
+    
 	if (p->main1Encountered) {
 		if (p->main1ParamsSet[0]) {
 			// Optional parameter: p->main1VarName
@@ -88,72 +118,82 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 		}
 	}
 
+    curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, curlerror);
+    
+    /*
+     if you are in a multithread environment getting signals can really screw things up.
+    http://curl.haxx.se/mail/lib-2013-05/0108.html
+    */
+    curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1);
+    
+    
 	// Flag parameters.
 	
-	if (p->AUTHFlagEncountered) {
-		// Parameter: p->AUTHFlagStrH (test for NULL handle before using)
-		if (p->AUTHFlagStrH == NULL) {
-			err = OH_EXPECTED_STRING;
-			goto done;
-		}
-	}
-	
-	/* for proxies
-	1) see if there is a proxy specified, command line always gets preference.
-	2) if there isn't then see if the IGOR preferences have one
-	*/
+	/* 
+     Proxy behaviour
+     1) If the /PROX flag is specified and a proxy host is given, then that proxy is used for the operation.
+            e.g. /PROXY=proxy.mycompany.com:3128
+     2) If the /PROX flag is specified and NO host is given, then the system proxy settings are interrogated
+     for the given URL of interest.
+     3) If no /PROX flag is specified, then the easyHttp preferences are checked for a stored proxy.
+     */
+    
 	if(RunningInMainThread())
 		if(err = GetPrefsState(&prefsState))
 			goto done;
 	
 	if(p->PROXFlagEncountered){
-        if(p->PROXFlagParamsSet[0] && p->PROXFlagStrH == NULL) {
-			err = OH_EXPECTED_STRING;
-			goto done;
-		}
-		url.assign(*(p->PROXFlagStrH), GetHandleSize(p->PROXFlagStrH));
-		curl_easy_setopt(curl, CURLOPT_PROXY, url.c_str());
-
-		//you want to save the proxy in the IGOR preferences file
-		//you can only do this if running in the main thread.
-		if(p->SFlagEncountered && RunningInMainThread()){
-			//if the preferences handle doesn't exist we have to create it.
-			if(!thePreferences){
-				thePreferences = (easyHttpPreferencesHandle) NewHandle(sizeof(easyHttpPreferences));
-				if(!thePreferences){
-					err = MemError();
-					goto done;
-				}
-				memset(*thePreferences, 0, GetHandleSize((Handle) thePreferences));
-			}
-			//just check if the preferences handle is changed in size.
-			if(GetHandleSize((Handle) thePreferences) != sizeof(easyHttpPreferences)){
-				SetHandleSize((Handle) thePreferences, sizeof(easyHttpPreferences));
-				if(err = MemError())
-					goto done;
-				memset(*thePreferences, 0, GetHandleSize((Handle) thePreferences));
-			}
-			//now put the proxy into the preferences handle
-			memset((*thePreferences)->proxyURLandPort, 0, sizeof((*thePreferences)->proxyURLandPort));
-			strncpy((*thePreferences)->proxyURLandPort, url.c_str(), sizeof((*thePreferences)->proxyURLandPort));
-		}
+        if(p->PROXFlagParamsSet[0] && p->PROXFlagStrH != NULL) {
+            proxyurl.assign(*(p->PROXFlagStrH), GetHandleSize(p->PROXFlagStrH));
+            curl_easy_setopt(curl, CURLOPT_PROXY, proxyurl.c_str());
+        } else {
+            /* you are going to query the system configured proxy settings. */
+        
+        }
+        
+        /*
+         you want to save the proxy in the IGOR preferences file
+        you can only do this if running in the main thread.
+         */
+        if(p->SFlagEncountered && RunningInMainThread()){
+            //if the preferences handle doesn't exist we have to create it.
+            if(!thePreferences){
+                thePreferences = (easyHttpPreferencesHandle) NewHandle(sizeof(easyHttpPreferences));
+                if(!thePreferences){
+                    err = MemError();
+                    goto done;
+                }
+                memset(*thePreferences, 0, GetHandleSize((Handle) thePreferences));
+            }
+            //just check if the preferences handle is changed in size.
+            if(GetHandleSize((Handle) thePreferences) != sizeof(easyHttpPreferences)){
+                SetHandleSize((Handle) thePreferences, sizeof(easyHttpPreferences));
+                if(err = MemError())
+                    goto done;
+                memset(*thePreferences, 0, GetHandleSize((Handle) thePreferences));
+            }
+            //now put the proxy into the preferences handle
+            memset((*thePreferences)->proxyURLandPort, 0, sizeof((*thePreferences)->proxyURLandPort));
+            strncpy((*thePreferences)->proxyURLandPort, proxyurl.c_str(), sizeof((*thePreferences)->proxyURLandPort));
+        }
 	} else if(thePreferences && prefsState){
+        /* get proxy from saved preferences */
 		if(strlen((*thePreferences)->proxyURLandPort))
 			curl_easy_setopt(curl, CURLOPT_PROXY, (*thePreferences)->proxyURLandPort);
 	}
 	
 	if(p->PPASFlagEncountered){
-		if (p->PPASFlagStrH == NULL) {
+		/* proxy authentication string */
+        if (p->PPASFlagStrH == NULL) {
 			err = OH_EXPECTED_STRING;
 			goto done;
 		}
-		if(err = GetCStringFromHandle(p->PPASFlagStrH, proxyUserPassword, MAX_PASSLEN))
-			goto done;
-		curl_easy_setopt(curl, CURLOPT_PROXYUSERPWD, proxyUserPassword);
+        proxyUserPassword.assign(*(p->PPASFlagStrH), (int) GetHandleSize(p->PPASFlagStrH));
+		curl_easy_setopt(curl, CURLOPT_PROXYUSERPWD, proxyUserPassword.c_str());
 		
-		//you want to save the proxy in the IGOR preferences file
+		/* you want to save the proxy in the IGOR preferences file. IN PLAINTEXT */
 		if(p->SFlagEncountered && RunningInMainThread()){
-			//if the preferences handle doesn't exist we have to create it.
+			/*if the preferences handle doesn't exist we have to create it. */
 			if(!thePreferences){
 				thePreferences = (easyHttpPreferencesHandle) NewHandle(sizeof(easyHttpPreferences));
 				if(thePreferences== NULL){
@@ -162,7 +202,7 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 				}
 				memset(*thePreferences, 0, GetHandleSize((Handle) thePreferences));
 			}
-			//just check if the preferences handle is changed in size.
+			/* just check if the preferences handle is changed in size. */
 			if(GetHandleSize((Handle) thePreferences) != sizeof(easyHttpPreferences)){
 				SetHandleSize((Handle) thePreferences, sizeof(easyHttpPreferences));
 				if(err = MemError())
@@ -170,11 +210,12 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 				memset(*thePreferences, 0, GetHandleSize((Handle) thePreferences));
 			}
 			
-			//now put the proxy into the preferences handle
+			/* now put the proxy into the preferences handle */
 			memset((*thePreferences)->proxyUserNameandPassword, 0, sizeof((*thePreferences)->proxyUserNameandPassword));
-			strncpy((*thePreferences)->proxyUserNameandPassword, proxyUserPassword, sizeof((*thePreferences)->proxyUserNameandPassword));
+			strncpy((*thePreferences)->proxyUserNameandPassword, proxyUserPassword.data(), sizeof((*thePreferences)->proxyUserNameandPassword));
 		}
 	} else if(thePreferences && prefsState){
+        /* if you didn't specify a proxy authentication and password, then try and retrieve from preferences */
 		if(strlen((*thePreferences)->proxyUserNameandPassword))
 			curl_easy_setopt(curl, CURLOPT_PROXYUSERPWD, (*thePreferences)->proxyUserNameandPassword);
 	}
@@ -187,20 +228,21 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 			err = OH_EXPECTED_STRING;
 			goto done;
 		}
-		if(err = GetCStringFromHandle(p->PASSFlagStrH, userpassword, MAX_PASSLEN))
-			goto done;
+        userpassword.assign(*(p->PPASFlagStrH), (int) GetHandleSize(p->PASSFlagStrH));
 		//set a user name and password for authentication
-		curl_easy_setopt(curl, CURLOPT_USERPWD, userpassword);
+		curl_easy_setopt(curl, CURLOPT_USERPWD, userpassword.c_str());
 		curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
 	}
 	
+    /* For a POST request */
 	if(p->POSTFlagEncountered){
 		if (p->POSTFlagStrH == NULL) {
 			err = OH_EXPECTED_STRING;
 			goto done;
 		}
 		postString.assign(*(p->POSTFlagStrH), (int) GetHandleSize(p->POSTFlagStrH));
-		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postString.c_str());
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE, (curl_off_t) postString.size());
+		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, (void *) postString.data());
 	}	
 		
 	if(p->FTPFlagEncountered){
@@ -208,11 +250,11 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 			err = OH_EXPECTED_STRING;
 			goto done;
 		}
-		if(err = GetCStringFromHandle(p->FTPFlagStrH,pathName, MAX_PATH_LEN))
+		if(err = GetCStringFromHandle(p->FTPFlagStrH, pathName, MAX_PATH_LEN))
 			goto done;	
-		if(err = GetNativePath(pathName,pathNameToRead))
+		if(err = GetNativePath(pathName, pathNameToRead))
 			goto done;
-		if(err = XOPOpenFile(pathNameToRead,0,&inputFile))
+		if(err = XOPOpenFile(pathNameToRead, 0, &inputFile))
 			goto done;
 		UInt32 numBytes = 0;
 		if(err = XOPNumberOfBytesInFile(inputFile, &numBytes))
@@ -240,7 +282,7 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 		/* send all data to this function  */
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_filedata);
 		/*send in the file*/
-		curl_easy_setopt(curl,CURLOPT_WRITEDATA ,outputFile);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, outputFile);
 		 
 	} else {
 		/*send all data to this function*/
@@ -253,31 +295,19 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	field, so we provide one */
 	curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
 	
-	//follow redirects
+	/* follow redirects */
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
 	
-	
-	//set a timeout
+	/* set a timeout */
 	if(p->TIMEFlagEncountered)
 		if(p->TIMEFlagNumber > 0)
 			curl_easy_setopt(curl, CURLOPT_TIMEOUT, (long)p->TIMEFlagNumber);
 
+    /* do the operation */
 	try{
 		res = curl_easy_perform(curl);
 	} catch (bad_alloc&){
 		err = NOMEM;
-	}
-	
-	if(res)
-		goto done;
-
-	//if not in a file put into a string handle
-	if (!p->FILEFlagEncountered && chunk.size()){
-		if(p->main1ParamsSet[0]){
-			if(err = StoreStringDataUsingVarName(p->main1VarName, (const char*)chunk.data(), chunk.size()))
-				goto done;
-		}else if (!err && (err = SetOperationStrVar2("S_getHttp", (const char*)chunk.data(), chunk.size())))
-			goto done;
 	}
 	
 done:
@@ -287,10 +317,19 @@ done:
 	} else {
 		err = SetOperationNumVar("V_flag", 0);
 		err = SetOperationStrVar("S_Value", "");
+        
+        //if not in a file put into a string handle
+        if (!p->FILEFlagEncountered && chunk.size()){
+            if(p->main1ParamsSet[0]){
+                if(err = StoreStringDataUsingVarName(p->main1VarName, (const char*)chunk.data(), chunk.size()))
+                    goto done;
+            } else if (err = SetOperationStrVar2("S_getHttp", (const char*)chunk.data(), chunk.size()))
+                goto done;
+        }
 	}
 
+    /* always cleanup */
 	if(curl)
-		//always cleanup
 		curl_easy_cleanup(curl);
 
 	if (outputFile != NULL) 
@@ -310,8 +349,12 @@ RegisterEasyHTTP(void)
 	char* runtimeStrVarList;
 
 	// NOTE: If you change this template, you must change the easyHttpRuntimeParams structure as well.
-	cmdTemplate = "easyHTTP/S/VERB/TIME=number/auth=string/pass=string/file=string/prox=[string]/ppas=string/post=string/ftp=string string[,varname]";
+	cmdTemplate = "easyHTTP/S/VERB/TIME=number/pass=string/file=string/prox=[string]/ppas=string/post=string/ftp=string string[,varname]";
 	runtimeNumVarList = "V_Flag";
 	runtimeStrVarList = "S_getHttp;S_error";
 	return RegisterOperation(cmdTemplate, runtimeNumVarList, runtimeStrVarList, sizeof(easyHttpRuntimeParams), (void*)ExecuteEasyHTTP, kOperationIsThreadSafe);
+}
+
+void licence(string &data){
+    data.assign("easyHttp uses: libcurl, libssh2, libproxy, libz, openssl. Please see the COPYING.txt file from: http://www.igorexchange.com/project/easyHttp");
 }

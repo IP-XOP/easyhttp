@@ -1,14 +1,6 @@
 
 #include "XOPStandardHeaders.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string>
-#include <vector>
-#include <algorithm>
- 
-#include <curl/curl.h>
-#include <curl/types.h>
-#include <curl/easy.h>
+
 
 #define MAX_URL_LENGTH 2048
 #define MAX_PASSLEN 200
@@ -26,8 +18,8 @@ using namespace std;
 
 #pragma pack(2)	// All structures passed to Igor are two-byte aligned.
 struct easyHttpPreferences {				// this is a structure to save preferences for 
-	char proxyURLandPort[MAX_URL_LENGTH+1];				// Where to get input value, where to store output value.
-	char proxyUserNameandPassword[MAX_PASSLEN+1];
+	char proxyURLandPort[MAX_URL_LENGTH + 1];				// Where to get input value, where to store output value.
+	char proxyUserNameandPassword[MAX_PASSLEN + 1];
 };
 typedef struct easyHttpPreferences easyHttpPreferences;
 typedef struct easyHttpPreferences *easyHttpPreferencesPtr;
@@ -40,7 +32,7 @@ struct easyHttpRuntimeParams {
 	// Flag parameters.
 	
 	// Parameters for /S flag group.
-	// this flag signifies that you want to save the proxy settings (both URL:port and username:password) in the preferences file
+	/* this flag signifies that you want to save the proxy settings (both URL:port and username:password) in the preferences file */
 	int SFlagEncountered;
 	// There are no fields for this group because it has no parameters.
 	
@@ -50,11 +42,6 @@ struct easyHttpRuntimeParams {
 	int TIMEFlagEncountered;
 	double TIMEFlagNumber;
 	int TIMEFlagParamsSet[1];
-	
-	// Parameters for /AUTH flag group.
-	int AUTHFlagEncountered;
-	Handle AUTHFlagStrH;
-	int AUTHFlagParamsSet[1];
 
 	// Parameters for /PASS flag group.
 	int PASSFlagEncountered;
@@ -66,7 +53,7 @@ struct easyHttpRuntimeParams {
 	Handle FILEFlagStrH;
 	int FILEFlagParamsSet[1];
 
-	// Parameters for /PROXY flag group.
+	// Parameters for /PROX flag group.
 	int PROXFlagEncountered;
 	Handle PROXFlagStrH;
 	int PROXFlagParamsSet[1];
