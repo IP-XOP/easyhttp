@@ -1,5 +1,8 @@
 // Runtime param structure for GetHTTP operation.
 #include "easyHttp.h"
+#include <curl/curl.h>
+
+
 
 easyHttpPreferencesHandle thePreferences;
 
