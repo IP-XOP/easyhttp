@@ -2,6 +2,8 @@
 #include "easyHttp.h"
 #include <string>
 #include <sstream>
+#include <iostream>
+#include <fstream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
@@ -11,11 +13,14 @@
 #include <curl/types.h>
 #include <curl/easy.h>
 
+using namespace std;
+
+
 #ifdef MACIGOR
-#include "proxy.h"
+#include "libproxy/proxy.h"
+int getProxy(string url, string & proxy);
 #endif
 
-using namespace std;
 
 void licence(string &);
 
@@ -154,7 +159,9 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
             curl_easy_setopt(curl, CURLOPT_PROXY, proxyurl.c_str());
         } else {
             /* you are going to query the system configured proxy settings. */
-        
+            if(err = getProxy(url, proxyurl))
+                goto done;
+            curl_easy_setopt(curl, CURLOPT_PROXY, proxyurl.c_str());
         }
         
         /*
@@ -355,31 +362,84 @@ RegisterEasyHTTP(void)
 	char* runtimeStrVarList;
 
 	// NOTE: If you change this template, you must change the easyHttpRuntimeParams structure as well.
-	cmdTemplate = "easyHTTP/S/VERB/TIME=number/pass=string/file=string/prox=[string]/ppas=string/post=string/ftp=string string[,varname]";
+	cmdTemplate = "easyHTTP/S/VERB/TIME=number/pass=string/file=string/prox[=string]/ppas=string/post=string/ftp=string string[,varname]";
 	runtimeNumVarList = "V_Flag";
 	runtimeStrVarList = "S_getHttp;S_error";
 	return RegisterOperation(cmdTemplate, runtimeNumVarList, runtimeStrVarList, sizeof(easyHttpRuntimeParams), (void*)ExecuteEasyHTTP, kOperationIsThreadSafe);
 }
 
+#ifdef MACIGOR
+int getProxy(string url, string & proxy){
+    /*
+     Uses libproxy to find which system configured proxy to use for a given URL.  It examines and parses any
+     possible proxy.pac file, as well as individually configured proxies.
+     
+     url:       a string containing the URL of interest
+     proxy:     a string that is filled out with the proxy to use.  The string is empty if no proxy is required.
+     
+     returns:   0 for success, non-zero for failure.
+     
+     */
+    proxy.clear();
+    
+    pxProxyFactory *pf = px_proxy_factory_new();
+    if (!pf)
+        return 1;
+    // Get which proxies to use in order to fetch the URL
+    char **proxies = px_proxy_factory_get_proxies(pf, url.c_str());
+    
+    //use the first proxy
+    if(proxies[0])
+        proxy.assign(proxies[0]);
+    
+    // Free the proxy list
+    for (int i=0 ; proxies[i] ; i++)
+        free(proxies[i]);
+    free(proxies);
+    
+    // Free the proxy factory
+    px_proxy_factory_free(pf);
+    
+    if(proxy.find(string("DIRECT")) != string::npos)
+        proxy.clear();
+    
+    return 0;
+}
+#endif
+
+
 void licence(string &data){
+    /* a function to detail the licences of the contributing libraries
+     data:      a string that will contain the licence information
+    */
     data.assign("easyHttp uses: libcurl, libssh2, libproxy, libz, openssl. Please see the COPYING.txt file from: http://www.igorexchange.com/project/easyHttp");
     
 #ifdef MACIGOR
-    // Get a reference to the main bundle
-    CFBundleRef mainBundle = CFBundleGetMainBundle();
-    
-    // Get a reference to the licence URL
-    CFURLRef licenceURL = CFBundleCopyResourceURL(mainBundle, CFSTR("COPYING.txt"), NULL, NULL);
+    /* Get a reference to the main bundle */
+    CFBundleRef easyHttpBundle = CFBundleGetBundleWithIdentifier(CFSTR("easyHttp"));
+
+    /* Get a reference to the licence URL */
+    CFURLRef licenceURL = CFBundleCopyResourceURL(easyHttpBundle, CFSTR("COPYING.txt"), NULL, NULL);
         
-    // Convert the URL reference into a string reference
+    /* Convert the URL reference into a string reference */
     CFStringRef licencePath = CFURLCopyFileSystemPath(licenceURL, kCFURLPOSIXPathStyle);
     
     // Get the system encoding method
-    CFStringEncoding encodingMethod = CFStringGetSystemEncoding();
+    //CFStringEncoding encodingMethod = CFStringGetSystemEncoding();
     
-    // Convert the string reference into a C string
-    const char *path = CFStringGetCStringPtr(licencePath, encodingMethod);
+    /* Convert the string reference into a C string */
+    char path[MAX_PATH_LEN + 1];
+    CFStringGetCString(licencePath, path, MAX_PASSLEN + 1, kCFStringEncodingMacRoman);
     
-    //open, read and fillout data.
+    /* open, read and fillout data. */
+    ifstream infile;
+    infile.open (path, std::ios::in | std::ios::binary);
+    if (infile)  {
+        infile.seekg(0, std::ios::end);
+        data.resize(infile.tellg());
+        infile.seekg(0, std::ios::beg);
+        infile.read(&data[0], data.size());
+        infile.close();
+    }
 #endif
 }
