@@ -19,6 +19,9 @@ using namespace std;
 #ifdef MACIGOR
 #include "libproxy/proxy.h"
 #endif
+#ifdef WINIGOR
+#include "Winhttp.h"
+#endif
 
 int getProxy(string url, string & proxy);
 void licence(string &);
@@ -367,6 +370,20 @@ RegisterEasyHTTP(void)
 	return RegisterOperation(cmdTemplate, runtimeNumVarList, runtimeStrVarList, sizeof(easyHttpRuntimeParams), (void*)ExecuteEasyHTTP, kOperationIsThreadSafe);
 }
 
+#ifdef WINIGOR
+std::wstring s2ws(const std::string& s)
+{
+    int len;
+    int slength = (int)s.length() + 1;
+    len = MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, 0, 0); 
+    wchar_t* buf = new wchar_t[len];
+    MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, buf, len);
+    std::wstring r(buf);
+    delete[] buf;
+    return r;
+}
+#endif
+
 int getProxy(string url, string & proxy){
     /*
      Uses libproxy to find which system configured proxy to use for a given URL.  It examines and parses any
@@ -378,6 +395,7 @@ int getProxy(string url, string & proxy){
      returns:   0 for success, non-zero for failure.
      
      */
+	int err = 0;
     proxy.clear();
 
 #ifdef MACIGOR
@@ -398,6 +416,75 @@ int getProxy(string url, string & proxy){
     
     // Free the proxy factory
     px_proxy_factory_free(pf);
+#endif
+
+#ifdef WINIGOR
+	HINTERNET  hSession = NULL;
+	WINHTTP_AUTOPROXY_OPTIONS pAutoProxyOptions;
+	WINHTTP_PROXY_INFO pProxyInfo;
+	WINHTTP_CURRENT_USER_IE_PROXY_CONFIG pProxyConfig;
+	LPWSTR LPWproxy = NULL;
+	LPCWSTR result;
+
+	pProxyInfo.dwAccessType = 0L;
+	pProxyInfo.lpszProxy = NULL;
+	pProxyInfo.lpszProxyBypass = NULL;
+	
+	pAutoProxyOptions.dwFlags = WINHTTP_AUTOPROXY_AUTO_DETECT;
+	pAutoProxyOptions.dwAutoDetectFlags = WINHTTP_AUTO_DETECT_TYPE_DHCP | WINHTTP_AUTO_DETECT_TYPE_DNS_A;
+	pAutoProxyOptions.lpszAutoConfigUrl = NULL;
+	pAutoProxyOptions.lpvReserved = NULL;
+	pAutoProxyOptions.dwReserved = 0;
+	pAutoProxyOptions.fAutoLogonIfChallenged = 1;
+		
+	err = WinHttpGetDefaultProxyConfiguration(&pProxyInfo);
+
+	if(pProxyInfo.lpszProxy) {
+		LPWproxy = pProxyInfo.lpszProxy;
+	} else {
+		WinHttpGetIEProxyConfigForCurrentUser(&pProxyConfig);
+		if(pProxyConfig.lpszProxy)
+			LPWproxy = pProxyConfig.lpszProxy;
+		if(pProxyConfig.lpszAutoConfigUrl)
+			pAutoProxyOptions.lpszAutoConfigUrl = pProxyConfig.lpszAutoConfigUrl;
+	}
+
+	if(!pProxyConfig.lpszProxy && !pProxyInfo.lpszProxy){
+		hSession = WinHttpOpen(L"libcurl/1.0", 
+                                WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+                                WINHTTP_NO_PROXY_NAME, 
+                                WINHTTP_NO_PROXY_BYPASS, 0);
+
+		if(hSession){
+			std::wstring stemp = s2ws(url);
+			result = stemp.c_str();
+			err = WinHttpGetProxyForUrl(hSession, result, &pAutoProxyOptions, &pProxyInfo);
+		}
+		if(pProxyInfo.lpszProxy)
+			LPWproxy = pProxyInfo.lpszProxy;
+	}
+
+	if(LPWproxy){
+		int sz = lstrlenW(LPWproxy);
+		int szL = 0;
+		szL = WideCharToMultiByte(CP_ACP, 0, LPWproxy, sz, NULL, 0, NULL, NULL);
+		proxy.resize(szL);
+		WideCharToMultiByte(CP_ACP, 0, LPWproxy, sz, (LPSTR) proxy.data(), proxy.size(), NULL, NULL);
+	}
+		
+	if(hSession)
+		WinHttpCloseHandle(hSession);
+	if(pProxyInfo.lpszProxy)
+		GlobalFree(pProxyInfo.lpszProxy);
+	if(pProxyInfo.lpszProxyBypass)
+		GlobalFree(pProxyInfo.lpszProxyBypass);
+	if(pProxyConfig.lpszAutoConfigUrl)
+		GlobalFree(pProxyConfig.lpszAutoConfigUrl);
+	if(pProxyConfig.lpszProxy)
+		GlobalFree(pProxyConfig.lpszProxy);
+	if(pProxyConfig.lpszProxyBypass)
+		GlobalFree(pProxyConfig.lpszProxyBypass);
+
 #endif
     
     if(proxy.find(string("DIRECT")) != string::npos)
