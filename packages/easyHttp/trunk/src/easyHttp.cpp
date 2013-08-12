@@ -18,10 +18,9 @@ using namespace std;
 
 #ifdef MACIGOR
 #include "libproxy/proxy.h"
-int getProxy(string url, string & proxy);
 #endif
 
-
+int getProxy(string url, string & proxy);
 void licence(string &);
 
 static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *stream)
@@ -368,7 +367,6 @@ RegisterEasyHTTP(void)
 	return RegisterOperation(cmdTemplate, runtimeNumVarList, runtimeStrVarList, sizeof(easyHttpRuntimeParams), (void*)ExecuteEasyHTTP, kOperationIsThreadSafe);
 }
 
-#ifdef MACIGOR
 int getProxy(string url, string & proxy){
     /*
      Uses libproxy to find which system configured proxy to use for a given URL.  It examines and parses any
@@ -381,7 +379,8 @@ int getProxy(string url, string & proxy){
      
      */
     proxy.clear();
-    
+
+#ifdef MACIGOR
     pxProxyFactory *pf = px_proxy_factory_new();
     if (!pf)
         return 1;
@@ -399,13 +398,13 @@ int getProxy(string url, string & proxy){
     
     // Free the proxy factory
     px_proxy_factory_free(pf);
+#endif
     
     if(proxy.find(string("DIRECT")) != string::npos)
         proxy.clear();
     
     return 0;
 }
-#endif
 
 
 void licence(string &data){
