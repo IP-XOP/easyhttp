@@ -40,9 +40,9 @@ WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
     string *chunk = (string *) userp;
     
-    chunk->assign((const char *) contents, size * nmemb);
+    chunk->append((const char *) contents, size * nmemb);
     
-    return chunk->size();
+    return size * nmemb;
 }
 
 
@@ -243,7 +243,7 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 			err = OH_EXPECTED_STRING;
 			goto done;
 		}
-        userpassword.assign(*(p->PPASFlagStrH), (int) GetHandleSize(p->PASSFlagStrH));
+        userpassword.assign(*(p->PASSFlagStrH), (int) GetHandleSize(p->PASSFlagStrH));
 		//set a user name and password for authentication
 		curl_easy_setopt(curl, CURLOPT_USERPWD, userpassword.c_str());
 		curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
