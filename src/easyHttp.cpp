@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <vector>
 #include <algorithm>
+#include "TextWaveAccess.h"
 
 #include <curl/curl.h>
 #include <curl/types.h>
@@ -69,6 +70,9 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
     curl_version_info_data *curl_data;
     std::stringstream oss;
 	string chunk;
+    struct curl_httppost* formpost = NULL;
+    struct curl_httppost* lastpost = NULL;
+    vector<string> tokens;
 	
 	if( igorVersion < 600 )
 		return REQUIRES_IGOR_600;
@@ -258,7 +262,34 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 		postString.assign(*(p->POSTFlagStrH), (int) GetHandleSize(p->POSTFlagStrH));
         curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE, (curl_off_t) postString.size());
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, (void *) postString.data());
-	}	
+	}
+    
+    /* For a form post request */
+    if(p->FORMFlagEncountered){
+        //get the form tokens into a string vector
+        int num_names = 0;
+        
+        if(err = textWaveToTokens(p->FORMFlagWaveH, tokens))
+            goto done;
+        //assume that wave is 2D, with first column being name, second column being contents.
+        num_names = tokens.size() / 2;
+        for(int ii = 0 ; ii < num_names ; ii++){
+            curl_formadd(&formpost,
+                          &lastpost,
+                            CURLFORM_PTRNAME,
+                             tokens.at(ii).data(),
+                              CURLFORM_NAMELENGTH,
+                               tokens.at(ii).size(),
+                                CURLFORM_PTRCONTENTS,
+                                 tokens.at(ii + num_names).data(),
+                                  CURLFORM_CONTENTSLENGTH,
+                                   tokens.at(ii + num_names).size(),
+                                    CURLFORM_END);
+        }
+    
+        /* Set the form info */
+        curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
+    }
 		
 	if(p->FTPFlagEncountered){
 		if (p->FTPFlagStrH == NULL) {
@@ -344,6 +375,8 @@ done:
 	}
 
     /* always cleanup */
+    if(formpost)
+        curl_formfree(formpost);
 	if(curl)
 		curl_easy_cleanup(curl);
 
@@ -364,7 +397,7 @@ RegisterEasyHTTP(void)
 	char* runtimeStrVarList;
 
 	// NOTE: If you change this template, you must change the easyHttpRuntimeParams structure as well.
-	cmdTemplate = "easyHTTP/S/VERB/TIME=number/pass=string/file=string/prox[=string]/ppas=string/post=string/ftp=string string[,varname]";
+	cmdTemplate = "easyHTTP/S/VERB/TIME=number/pass=string/file=string/prox[=string]/ppas=string/post=string/ftp=string/form=wave string[,varname]";
 	runtimeNumVarList = "V_Flag";
 	runtimeStrVarList = "S_getHttp;S_error";
 	return RegisterOperation(cmdTemplate, runtimeNumVarList, runtimeStrVarList, sizeof(easyHttpRuntimeParams), (void*)ExecuteEasyHTTP, kOperationIsThreadSafe);
