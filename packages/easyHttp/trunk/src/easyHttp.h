@@ -69,6 +69,11 @@ struct easyHttpRuntimeParams {
 	int FTPFlagEncountered;
 	Handle FTPFlagStrH;
 	int FTPFlagParamsSet[1];
+    
+    // Parameters for /FORM flag group.
+	int FORMFlagEncountered;
+	waveHndl FORMFlagWaveH;
+	int FORMFlagParamsSet[1];
 
 	// Main parameters.
 
