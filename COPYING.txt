@@ -1,7 +1,8 @@
 easyHttp makes use of the following open source libraries:
 libcurl, libssh2, openssl, libproxy
 
-easyHttp links to these libraries dynamically, as embedded in a framework.  You can rebuild these frameworks yourself to use updated code.
+easyHttp is statically linked to libcurl, libssh2 and openssl. It links to
+libproxy dynamically, as embedded in a framework.  You can rebuild this framework yourself to use updated code.
 Their licences are given below.
 
 libcurl:
@@ -70,7 +71,7 @@ libssh2:
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
  * OF SUCH DAMAGE.
  */
- 
+
  openssl:
   LICENSE ISSUES
   ==============

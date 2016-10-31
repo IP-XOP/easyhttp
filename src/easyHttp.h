@@ -5,13 +5,13 @@
 #define MAX_URL_LENGTH 2048
 #define MAX_PASSLEN 200
 
-#define REQUIRES_IGOR_600 1 + FIRST_XOP_ERR
+#define REQUIRES_IGOR_700 1 + FIRST_XOP_ERR
 #define ERR_KEY_VAL 2 + FIRST_XOP_ERR
 #define WAVE_TOO_SHORT 3 + FIRST_XOP_ERR
 #define COULDNT_LOCK_FILE 4 + FIRST_XOP_ERR
 
 /* Prototypes */
-HOST_IMPORT int main(IORecHandle ioRecHandle);
+HOST_IMPORT int XOPMain(IORecHandle ioRecHandle);
 
 #pragma pack(2)	// All structures passed to Igor are two-byte aligned.
 struct easyHttpPreferences {				// this is a structure to save preferences for 

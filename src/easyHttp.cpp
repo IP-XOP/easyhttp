@@ -73,8 +73,8 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
     struct curl_httppost* lastpost = NULL;
     vector<string> tokens;
 	
-	if( igorVersion < 600 )
-		return REQUIRES_IGOR_600;
+	if( igorVersion < 700 )
+		return REQUIRES_IGOR_700;
   
 	if( igorVersion < 620 && !RunningInMainThread())
 		return NOT_IN_THREADSAFE;
@@ -396,7 +396,7 @@ RegisterEasyHTTP(void)
 	char* runtimeStrVarList;
 
 	// NOTE: If you change this template, you must change the easyHttpRuntimeParams structure as well.
-	cmdTemplate = "easyHTTP/S/VERB/TIME=number/pass=string/file=string/prox[=string]/ppas=string/post=string/ftp=string/form=wave string[,varname]";
+	cmdTemplate = "easyhttp/S/VERB/TIME=number/pass=string/file=string/prox[=string]/ppas=string/post=string/ftp=string/form=wave string[,varname]";
 	runtimeNumVarList = "V_Flag";
 	runtimeStrVarList = "S_getHttp;S_error";
 	return RegisterOperation(cmdTemplate, runtimeNumVarList, runtimeStrVarList, sizeof(easyHttpRuntimeParams), (void*)ExecuteEasyHTTP, kOperationIsThreadSafe);
@@ -436,7 +436,7 @@ int getProxy(string url, string & proxy){
         return 1;
     // Get which proxies to use in order to fetch the URL
     char **proxies = px_proxy_factory_get_proxies(pf, url.c_str());
-    
+        
     //use the first proxy
     if(proxies[0])
         proxy.assign(proxies[0]);
@@ -521,6 +521,9 @@ int getProxy(string url, string & proxy){
     
     if(proxy.find(string("DIRECT")) != string::npos)
         proxy.clear();
+ 
+    if(proxy.find(string("direct")) != string::npos)
+        proxy.clear();
     
     return 0;
 }
@@ -530,18 +533,23 @@ void licence(string &data){
     /* a function to detail the licences of the contributing libraries
      data:      a string that will contain the licence information
     */
-    data.assign("easyHttp uses: libcurl, libssh2, libproxy, libz, openssl. Please see the COPYING.txt file from: http://www.igorexchange.com/project/easyHttp");
+    data.assign("easyHttp uses: libcurl, libssh2, libproxy, libz, openssl.");
     
 #ifdef MACIGOR
+    CFStringRef licencePath;
+    
     /* Get a reference to the main bundle */
-    CFBundleRef easyHttpBundle = CFBundleGetBundleWithIdentifier(CFSTR("easyHttp"));
+    CFBundleRef easyHttpBundle = CFBundleGetBundleWithIdentifier(CFSTR("easyhttp64"));
 
     /* Get a reference to the licence URL */
     CFURLRef licenceURL = CFBundleCopyResourceURL(easyHttpBundle, CFSTR("COPYING.txt"), NULL, NULL);
         
     /* Convert the URL reference into a string reference */
-    CFStringRef licencePath = CFURLCopyFileSystemPath(licenceURL, kCFURLPOSIXPathStyle);
-    
+    if(licenceURL){
+        licencePath = CFURLCopyFileSystemPath(licenceURL, kCFURLPOSIXPathStyle);
+    } else {
+        return;
+    }
     // Get the system encoding method
     //CFStringEncoding encodingMethod = CFStringGetSystemEncoding();
     
