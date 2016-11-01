@@ -266,13 +266,13 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
     /* For a form post request */
     if(p->FORMFlagEncountered){
         //get the form tokens into a string vector
-        int num_names = 0;
+        size_t num_names = 0;
         
         if(err = textWaveToTokens(p->FORMFlagWaveH, tokens))
             goto done;
         //assume that wave is 2D, with first column being name, second column being contents.
         num_names = tokens.size() / 2;
-        for(int ii = 0 ; ii < num_names ; ii++){
+        for(size_t ii = 0 ; ii < num_names ; ii++){
             curl_formadd(&formpost,
                           &lastpost,
                             CURLFORM_PTRNAME,
@@ -501,7 +501,7 @@ int getProxy(string url, string & proxy){
 		int szL = 0;
 		szL = WideCharToMultiByte(CP_ACP, 0, LPWproxy, sz, NULL, 0, NULL, NULL);
 		proxy.resize(szL);
-		WideCharToMultiByte(CP_ACP, 0, LPWproxy, sz, (LPSTR) proxy.data(), proxy.size(), NULL, NULL);
+		WideCharToMultiByte(CP_ACP, 0, LPWproxy, sz, (LPSTR) proxy.data(), (int) proxy.size(), NULL, NULL);
 	}
 		
 	if(hSession)
