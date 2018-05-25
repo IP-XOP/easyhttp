@@ -72,12 +72,6 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
     struct curl_httppost* formpost = NULL;
     struct curl_httppost* lastpost = NULL;
     vector<string> tokens;
-	
-	if( igorVersion < 700 )
-		return REQUIRES_IGOR_700;
-  
-	if( igorVersion < 620 && !RunningInMainThread())
-		return NOT_IN_THREADSAFE;
 
 	/* init the curl session */
 	curl= curl_easy_init();
