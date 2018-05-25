@@ -17,7 +17,7 @@ using namespace std;
 
 
 #ifdef MACIGOR
-#include "libproxy/proxy.h"
+#include <libproxy/proxy.h>
 #endif
 #ifdef WINIGOR
 #include "Winhttp.h"
@@ -91,7 +91,7 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 			err = OH_EXPECTED_STRING;
 			goto done;
 		}
-		url.assign(*(p->main0StrH), GetHandleSize(p->main0StrH));
+		url.assign(*(p->main0StrH), WMGetHandleSize(p->main0StrH));
  		//Specify the URL to get
 		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 	}
@@ -160,7 +160,7 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 	
 	if(p->PROXFlagEncountered){
         if(p->PROXFlagParamsSet[0] && p->PROXFlagStrH != NULL) {
-            proxyurl.assign(*(p->PROXFlagStrH), GetHandleSize(p->PROXFlagStrH));
+            proxyurl.assign(*(p->PROXFlagStrH), WMGetHandleSize(p->PROXFlagStrH));
             curl_easy_setopt(curl, CURLOPT_PROXY, proxyurl.c_str());
         } else {
             /* you are going to query the system configured proxy settings. */
@@ -176,19 +176,19 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
         if(p->SFlagEncountered && RunningInMainThread()){
             //if the preferences handle doesn't exist we have to create it.
             if(!thePreferences){
-                thePreferences = (easyHttpPreferencesHandle) NewHandle(sizeof(easyHttpPreferences));
+                thePreferences = (easyHttpPreferencesHandle) WMNewHandle(sizeof(easyHttpPreferences));
                 if(!thePreferences){
-                    err = MemError();
+                    err = NOMEM;
                     goto done;
                 }
-                memset(*thePreferences, 0, GetHandleSize((Handle) thePreferences));
+                memset(*thePreferences, 0, WMGetHandleSize((Handle) thePreferences));
             }
             //just check if the preferences handle is changed in size.
-            if(GetHandleSize((Handle) thePreferences) != sizeof(easyHttpPreferences)){
-                SetHandleSize((Handle) thePreferences, sizeof(easyHttpPreferences));
-                if(err = MemError())
+            if(WMGetHandleSize((Handle) thePreferences) != sizeof(easyHttpPreferences)){
+                err = WMSetHandleSize((Handle) thePreferences, sizeof(easyHttpPreferences));
+                if(err)
                     goto done;
-                memset(*thePreferences, 0, GetHandleSize((Handle) thePreferences));
+                memset(*thePreferences, 0, WMGetHandleSize((Handle) thePreferences));
             }
             //now put the proxy into the preferences handle
             memset((*thePreferences)->proxyURLandPort, 0, sizeof((*thePreferences)->proxyURLandPort));
@@ -206,26 +206,26 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 			err = OH_EXPECTED_STRING;
 			goto done;
 		}
-        proxyUserPassword.assign(*(p->PPASFlagStrH), (int) GetHandleSize(p->PPASFlagStrH));
+        proxyUserPassword.assign(*(p->PPASFlagStrH), (int) WMGetHandleSize(p->PPASFlagStrH));
 		curl_easy_setopt(curl, CURLOPT_PROXYUSERPWD, proxyUserPassword.c_str());
 		
 		/* you want to save the proxy in the IGOR preferences file. IN PLAINTEXT */
 		if(p->SFlagEncountered && RunningInMainThread()){
 			/*if the preferences handle doesn't exist we have to create it. */
 			if(!thePreferences){
-				thePreferences = (easyHttpPreferencesHandle) NewHandle(sizeof(easyHttpPreferences));
-				if(thePreferences== NULL){
-					err = MemError();
+				thePreferences = (easyHttpPreferencesHandle) WMNewHandle(sizeof(easyHttpPreferences));
+				if(thePreferences == NULL){
+					err = NOMEM;
 					goto done;
 				}
-				memset(*thePreferences, 0, GetHandleSize((Handle) thePreferences));
+				memset(*thePreferences, 0, WMGetHandleSize((Handle) thePreferences));
 			}
 			/* just check if the preferences handle is changed in size. */
-			if(GetHandleSize((Handle) thePreferences) != sizeof(easyHttpPreferences)){
-				SetHandleSize((Handle) thePreferences, sizeof(easyHttpPreferences));
-				if(err = MemError())
+			if(WMGetHandleSize((Handle) thePreferences) != sizeof(easyHttpPreferences)){
+				err = WMSetHandleSize((Handle) thePreferences, sizeof(easyHttpPreferences));
+				if(err)
 					goto done;
-				memset(*thePreferences, 0, GetHandleSize((Handle) thePreferences));
+				memset(*thePreferences, 0, WMGetHandleSize((Handle) thePreferences));
 			}
 			
 			/* now put the proxy into the preferences handle */
@@ -246,7 +246,7 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 			err = OH_EXPECTED_STRING;
 			goto done;
 		}
-        userpassword.assign(*(p->PASSFlagStrH), (int) GetHandleSize(p->PASSFlagStrH));
+        userpassword.assign(*(p->PASSFlagStrH), (int) WMGetHandleSize(p->PASSFlagStrH));
 		//set a user name and password for authentication
 		curl_easy_setopt(curl, CURLOPT_USERPWD, userpassword.c_str());
 		curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
@@ -258,7 +258,7 @@ ExecuteEasyHTTP(easyHttpRuntimeParamsPtr p)
 			err = OH_EXPECTED_STRING;
 			goto done;
 		}
-		postString.assign(*(p->POSTFlagStrH), (int) GetHandleSize(p->POSTFlagStrH));
+		postString.assign(*(p->POSTFlagStrH), (int) WMGetHandleSize(p->POSTFlagStrH));
         curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE, (curl_off_t) postString.size());
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, (void *) postString.data());
 	}
@@ -391,14 +391,11 @@ done:
 int
 RegisterEasyHTTP(void)
 {
-	char* cmdTemplate;
-	char* runtimeNumVarList;
-	char* runtimeStrVarList;
+	char const * cmdTemplate = "easyhttp/S/VERB/TIME=number/pass=string/file=string/prox[=string]/ppas=string/post=string/ftp=string/form=wave string[,varname]";
+    
+    char const * runtimeNumVarList = "V_Flag";
+	char const * runtimeStrVarList = "S_getHttp;S_error";
 
-	// NOTE: If you change this template, you must change the easyHttpRuntimeParams structure as well.
-	cmdTemplate = "easyhttp/S/VERB/TIME=number/pass=string/file=string/prox[=string]/ppas=string/post=string/ftp=string/form=wave string[,varname]";
-	runtimeNumVarList = "V_Flag";
-	runtimeStrVarList = "S_getHttp;S_error";
 	return RegisterOperation(cmdTemplate, runtimeNumVarList, runtimeStrVarList, sizeof(easyHttpRuntimeParams), (void*)ExecuteEasyHTTP, kOperationIsThreadSafe);
 }
 

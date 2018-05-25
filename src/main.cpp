@@ -18,7 +18,7 @@ static void saveAndCleanupPreferences(){
 	//only if there are preferences will you save them.
 	if(thePreferences){
 		SaveXOPPrefsHandle((Handle) thePreferences);
-		DisposeHandle((Handle) thePreferences);
+		WMDisposeHandle((Handle) thePreferences);
 	}
 }
 
