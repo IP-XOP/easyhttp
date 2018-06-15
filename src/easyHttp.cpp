@@ -459,8 +459,14 @@ int getProxy(string url, string & proxy){
 	pAutoProxyOptions.lpvReserved = NULL;
 	pAutoProxyOptions.dwReserved = 0;
 	pAutoProxyOptions.fAutoLogonIfChallenged = 1;
-		
-	err = WinHttpGetDefaultProxyConfiguration(&pProxyInfo);
+
+	pProxyConfig.fAutoDetect = 0;
+	pProxyConfig.lpszAutoConfigUrl = NULL;
+	pProxyConfig.lpszProxy = NULL;
+	pProxyConfig.lpszProxyBypass = NULL;
+
+	// returns True on success
+	WinHttpGetDefaultProxyConfiguration(&pProxyInfo);
 
 	if(pProxyInfo.lpszProxy) {
 		LPWproxy = pProxyInfo.lpszProxy;
@@ -471,7 +477,7 @@ int getProxy(string url, string & proxy){
 		if(pProxyConfig.lpszAutoConfigUrl)
 			pAutoProxyOptions.lpszAutoConfigUrl = pProxyConfig.lpszAutoConfigUrl;
 	}
-
+	
 	if(!pProxyConfig.lpszProxy && !pProxyInfo.lpszProxy){
 		hSession = WinHttpOpen(L"libcurl/1.0", 
                                 WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
@@ -507,7 +513,6 @@ int getProxy(string url, string & proxy){
 		GlobalFree(pProxyConfig.lpszProxy);
 	if(pProxyConfig.lpszProxyBypass)
 		GlobalFree(pProxyConfig.lpszProxyBypass);
-
 #endif
     
     if(proxy.find(string("DIRECT")) != string::npos)
