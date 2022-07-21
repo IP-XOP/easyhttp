@@ -17,7 +17,7 @@ using namespace std;
 
 
 #ifdef MACIGOR
-#include <libproxy/proxy.h>
+#include "proxy.h"
 #endif
 #ifdef WINIGOR
 #include "Winhttp.h"
@@ -359,7 +359,17 @@ done:
         
         //if not in a file put into a string handle
         if (!p->FILEFlagEncountered && chunk.size()){
+
             if(p->main1ParamsSet[0]){
+                int varDataType = 1;
+
+                if (err = VarNameToDataType(p->main1VarName, &varDataType))
+                    goto done;
+
+                if (varDataType != 0){
+                    err = EXPECTED_STRINGVARNAME;
+                    goto done;
+                }
                 if(err = StoreStringDataUsingVarName(p->main1VarName, (const char*)chunk.data(), chunk.size()))
                     goto done;
             } else if (err = SetOperationStrVar2("S_getHttp", (const char*)chunk.data(), chunk.size()))

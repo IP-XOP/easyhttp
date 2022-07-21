@@ -90,7 +90,7 @@ HOST_IMPORT int XOPMain(IORecHandle ioRecHandle){
 		return EXIT_FAILURE;
 	}
 	
-    if (igorVersion < 700){
+    if (igorVersion < 800){
         SetXOPResult(IGOR_OBSOLETE);
         return EXIT_FAILURE;
     }else{

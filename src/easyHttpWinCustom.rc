@@ -8,7 +8,7 @@
 1100 STR#							// Custom error messages.
 BEGIN
     //[1]
-	"easyHttp requires Igor Pro 7 or later.\0",
+	"easyHttp requires Igor Pro 8 or later.\0",
 	/* [2] */
 	"error with POST string key:value; pairs.\0",
 	/* [3] */
@@ -33,8 +33,8 @@ END
 BEGIN
 	XOP_VERSION,					// Version number of host XOP system.
 	DEV_SYS_CODE,					// Code for development system used to make XOP.
-	0,								// Obsolete - set to zero.
-	0,								// Obsolete - set to zero.
+	XOP_FEATURE_FLAGS,				// Obsolete - set to zero.
+	XOPI_RESERVED,					// Obsolete - set to zero.
 	XOP_TOOLKIT_VERSION				// XOP Toolkit version.
 END
 
